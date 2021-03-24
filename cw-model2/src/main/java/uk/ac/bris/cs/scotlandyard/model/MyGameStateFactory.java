@@ -12,7 +12,7 @@ import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
-/*****
+/*****love you 
  * cw-model
  * Stage 1: Complete this class
  */
