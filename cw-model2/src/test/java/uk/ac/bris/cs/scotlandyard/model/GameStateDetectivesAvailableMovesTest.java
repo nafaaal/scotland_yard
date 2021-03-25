@@ -27,6 +27,21 @@ public class GameStateDetectivesAvailableMovesTest extends ParameterisedModelTes
 
 	// -- Detective related tests --
 
+	//PROVISIONAL TEST
+	@Test public void testAAAAAAAAAAAAAAAAAAAA() {
+		var mrX = new Player(MRX, defaultMrXTickets(), 104);
+		var blue = new Player(BLUE, makeTickets(11, 8, 4, 0, 0), 151);
+
+		GameState state = gameStateFactory.build(standard24RoundSetup(), mrX, blue);
+		state = state.advance(taxi(MRX, 104, 86));
+		assertThat(state.getAvailableMoves()).containsExactlyInAnyOrder(
+				taxi(BLUE, 151, 150),
+				taxi(BLUE, 151, 152),
+				taxi(BLUE, 151, 166),
+				taxi(BLUE, 151, 165));
+	}
+	//PROVISIONAL TEST
+
 
 	@Test public void testDetectiveAt128MovesShouldProduce13ValidMoves() {
 		var mrX = new Player(MRX, defaultMrXTickets(), 104);
