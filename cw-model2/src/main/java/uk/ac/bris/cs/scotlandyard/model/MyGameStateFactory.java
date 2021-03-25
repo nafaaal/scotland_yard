@@ -72,6 +72,35 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		}
 
+		private static ImmutableSet<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+			final var singleMoves = new ArrayList<SingleMove>();
+
+			List<Integer> detectiveLocations = new ArrayList<>();
+			for (Player p : detectives){
+				detectiveLocations.add(p.location());
+			}
+
+			for(int destination : setup.graph.adjacentNodes(source)) {
+				if (!(detectiveLocations.contains(destination))){
+					for(Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
+
+					}
+				}
+
+
+
+				// TODO find out if destination is occupied by a detective
+				//  if the location is occupied, don't add to the list of moves to return
+				//detective, mrX cannot move into a detective,
+
+
+
+
+			// TODO consider the rules of secret moves here
+			//  add moves to the destination via a secret ticket if there are any left with the player
+			}
+			return ImmutableSet.copyOf(singleMoves);
+		}
 
 		@Override public GameSetup getSetup() { return setup; }
 		@Override public ImmutableSet<Piece> getPlayers() {
