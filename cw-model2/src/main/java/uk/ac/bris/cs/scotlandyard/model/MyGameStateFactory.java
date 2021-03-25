@@ -36,20 +36,27 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
+
 		}
 
 
 		@Override public GameSetup getSetup() { return setup; }
 		@Override public ImmutableSet<Piece> getPlayers() {
-
-			//return ImmutableList.copyOf(Lists.asList(mrX, detectives));
+			List<Piece> players = new ArrayList<>();
+			players.add(mrX.piece());
+			for(Player p : detectives){
+				players.add(p.piece());
+			}
+			return ImmutableSet.copyOf(players);
 		}
+
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
 			for (Player d : detectives) {
 				if (d.equals(detective)) return Optional.of(d.location());
 				}
 			return Optional.empty();
 		}
+
 		@Override public Optional<TicketBoard> getPlayerTickets(Piece piece) { return Optional.empty(); }
 		@Override public ImmutableList<LogEntry> getMrXTravelLog() { return log; }
 		@Override public ImmutableSet<Piece> getWinner() { return null; }
