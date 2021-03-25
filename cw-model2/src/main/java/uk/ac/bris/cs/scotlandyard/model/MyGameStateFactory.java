@@ -42,6 +42,34 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			players.addAll(detectives);
 			everyone = ImmutableList.copyOf(players);
 
+
+			if (mrX == null) throw new NullPointerException();
+			if (detectives == null) throw new NullPointerException();
+			if (!mrX.isMrX()) throw new IllegalArgumentException();
+
+			Set<Integer> set1 = new HashSet<Integer>();
+			for (Player r : detectives){
+				if (r.isMrX()) throw new IllegalArgumentException();
+
+				set1.add(r.location());
+
+				if (r.has(Ticket.SECRET)) throw new IllegalArgumentException();
+
+				if (r.has(Ticket.DOUBLE)) throw new IllegalArgumentException();
+			}
+
+			if(set1.size() < detectives.size()){
+				throw new IllegalArgumentException();
+			}
+
+
+			Set<Player> set2 = new HashSet<Player>(detectives);
+			if(set2.size() < detectives.size()){
+				throw new IllegalArgumentException();
+			}
+			if (setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty!");
+			if (setup.graph.nodes().isEmpty()) throw new IllegalArgumentException("Rounds is empty!");
+
 		}
 
 
@@ -69,34 +97,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	}
 
 	@Nonnull @Override public GameState build(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
-
-		if (mrX == null) throw new NullPointerException();
-		if (detectives == null) throw new NullPointerException();
-		if (!mrX.isMrX()) throw new IllegalArgumentException();
-
-		Set<Integer> set1 = new HashSet<Integer>();
-		for (Player r : detectives){
-			if (r.isMrX()) throw new IllegalArgumentException();
-
-			set1.add(r.location());
-
-			if (r.has(Ticket.SECRET)) throw new IllegalArgumentException();
-
-			if (r.has(Ticket.DOUBLE)) throw new IllegalArgumentException();
-		}
-
-		if(set1.size() < detectives.size()){
-			throw new IllegalArgumentException();
-		}
-
-
-		Set<Player> set2 = new HashSet<Player>(detectives);
-		if(set2.size() < detectives.size()){
-			throw new IllegalArgumentException();
-		}
-		if (setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty!");
-		if (setup.graph.nodes().isEmpty()) throw new IllegalArgumentException("Rounds is empty!");
-		//throw new RuntimeException("Implement me!");
 		return new MyGameState(setup, ImmutableSet.of(MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
 
