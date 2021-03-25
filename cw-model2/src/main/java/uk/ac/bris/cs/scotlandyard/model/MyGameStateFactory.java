@@ -37,17 +37,21 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.mrX = mrX;
 			this.detectives = detectives;
 
+			List<Player> players = new ArrayList<>();
+			players.add(mrX);
+			players.addAll(detectives);
+			everyone = ImmutableList.copyOf(players);
+
 		}
 
 
 		@Override public GameSetup getSetup() { return setup; }
 		@Override public ImmutableSet<Piece> getPlayers() {
-			List<Piece> players = new ArrayList<>();
-			players.add(mrX.piece());
-			for(Player p : detectives){
-				players.add(p.piece());
+			List<Piece> playerPieces = new ArrayList<>();
+			for(Player p : everyone){
+				playerPieces.add(p.piece());
 			}
-			return ImmutableSet.copyOf(players);
+			return ImmutableSet.copyOf(playerPieces);
 		}
 
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
@@ -59,7 +63,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Override public Optional<TicketBoard> getPlayerTickets(Piece piece) { return Optional.empty(); }
 		@Override public ImmutableList<LogEntry> getMrXTravelLog() { return log; }
-		@Override public ImmutableSet<Piece> getWinner() { return null; }
+		@Override public ImmutableSet<Piece> getWinner() { return winner; }
 		@Override public ImmutableSet<Move> getAvailableMoves() { return null; }
 		@Override public GameState advance(Move move) { return null; }
 	}
