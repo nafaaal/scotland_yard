@@ -115,60 +115,31 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		for (Player p : detectives){
 			detectiveLocations.add(p.location());
 		}
-
-		// TODO find out if destination is occupied by a detective
-		//  if the location is occupied, don't add to the list of moves to return
 		for(int destination : setup.graph.adjacentNodes(source)) {
 			if (!(detectiveLocations.contains(destination))){
 				for(Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
-					// TODO find out if the player has the required tickets
-					//  if it does, construct SingleMove and add it the list of moves to return
 					if (player.has(t.requiredTicket())) {
 						singleMoves.add(new SingleMove(player.piece(), source, t.requiredTicket(), destination));
 					}
+					if (player.has(Ticket.SECRET)) {
+						singleMoves.add(new SingleMove(player.piece(), source, Ticket.SECRET, destination));
+					}
 				}
-			}
-
-			// TODO consider the rules of secret moves here
-			//  add moves to the destination via a secret ticket if there are any left with the player
-			if (player.has(Ticket.SECRET)) {
-				singleMoves.add(new SingleMove(player.piece(), source, Ticket.SECRET, destination));
 			}
 		}
 		return ImmutableSet.copyOf(singleMoves);
 	}
 
-	private static ImmutableSet<DoubleMove> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
-		final var doubleMoves = new ArrayList<DoubleMove>();
-		//Set<SingleMove> singleMoves = makeSingleMoves(setup, detectives, player, source);
-		if(player.has(Ticket.SECRET)) {
-			List<Integer> detectiveLocations = new ArrayList<>();
-			for (Player p : detectives) {
-				detectiveLocations.add(p.location());
-			}
+	private static ImmutableSet<Move> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+		List<Move> singleMoves = new ArrayList<>(makeSingleMoves(setup, detectives, player, source));
+		List<Move> allMoves = new ArrayList<>();
+		if (player.isMrX()){
+			for (Move m : singleMoves){
 
-			// TODO find out if destination is occupied by a detective
-			//  if the location is occupied, don't add to the list of moves to return
-			for (int destination : setup.graph.adjacentNodes(source)) {
-				if (!(detectiveLocations.contains(destination))) {
-					for (Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of())) {
-						// TODO find out if the player has the required tickets
-						//  if it does, construct SingleMove and add it the list of moves to return
-						if (player.has(t.requiredTicket())) {
-							doubleMoves.add(new DoubleMove(player.piece(), source, t.requiredTicket(), destination));
-						}
-					}
-				}
-
-				// TODO consider the rules of secret moves here
-				//  add moves to the destination via a secret ticket if there are any left with the player
-				if (player.has(Ticket.SECRET)) {
-					doubleMoves.add(new DoubleMove(player.piece(), source, Ticket.SECRET, destination));
-				}
 			}
-			return ImmutableSet.copyOf(doubleMoves);
 		}
-		return
+
+		return ImmutableSet.copyOf(allMoves);
 	}
 
 }
