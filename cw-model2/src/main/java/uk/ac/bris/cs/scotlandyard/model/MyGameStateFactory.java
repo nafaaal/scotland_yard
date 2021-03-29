@@ -1,6 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.model;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.*;
 import javax.annotation.Nonnull;
@@ -43,6 +44,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			players.addAll(detectives);
 			everyone = ImmutableList.copyOf(players);
 
+			moves = getAvailableMoves();
+			winner = getWinner();
+
 
 			if (mrX == null) throw new NullPointerException();
 			if (detectives == null) throw new NullPointerException();
@@ -71,11 +75,29 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty!");
 			if (setup.graph.nodes().isEmpty()) throw new IllegalArgumentException("Rounds is empty!");
 
+
+
+		}
+
+		public class myBoard implements Board.TicketBoard{
+			public ImmutableMap<Ticket, Integer> tickets;
+
+			public myBoard(ImmutableMap<Ticket, Integer> tickets){
+				this.tickets = tickets;
+			}
+			// NEED TO IMPLEMENT GET COUNT
+			public int getCount(@Nonnull Ticket ticket){
+				return 2;
+			}
+
 		}
 
 
 
-		@Override public GameSetup getSetup() { return setup; }
+		@Override public GameSetup getSetup() {
+			return setup;
+		}
+
 		@Override public ImmutableSet<Piece> getPlayers() {
 			List<Piece> playerPieces = new ArrayList<>();
 			for(Player p : everyone){
@@ -86,26 +108,36 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
 			for (Player d : detectives) {
-				if (d.equals(detective)) return Optional.of(d.location());
+				if (d.piece().equals(detective)) return Optional.of(d.location());
 				}
 			return Optional.empty();
 		}
 
-		@Override public Optional<TicketBoard> getPlayerTickets(Piece piece) { return Optional.empty(); }
+		@Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
+			for (Player d : everyone) {
+				if (d.piece().equals(piece)) {
+					TicketBoard tickectt = new myBoard(d.tickets());
+					return Optional.of(tickectt);
+				}
+			}
+			return Optional.empty();
+		}
+
 		@Override public ImmutableList<LogEntry> getMrXTravelLog() { return log; }
-		@Override public ImmutableSet<Piece> getWinner() { return winner; }
+		// NEED TO FIND WINNERS
+		@Override public ImmutableSet<Piece> getWinner(){
+			ImmutableSet<Piece> win =  ImmutableSet.of();;
+			if (log.size() == 0) win = ImmutableSet.of();
+			return win;
+		}
 		@Override public ImmutableSet<Move> getAvailableMoves() {
-			Set<SingleMove> temporary = new HashSet<>();
+			Set<Move> temporary = new HashSet<>();
 			for(Player p : everyone){
-				temporary.addAll(makeSingleMoves(setup, detectives, p, p.location()));
+				temporary.addAll(makeDoubleMoves(setup, detectives, p, p.location()));
 			}
 			return ImmutableSet.copyOf(temporary);
 		}
 		@Override public GameState advance(Move move) { return null; }
-	}
-
-	@Nonnull @Override public GameState build(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
-		return new MyGameState(setup, ImmutableSet.of(MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
 
 	private static ImmutableSet<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
@@ -133,13 +165,20 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	private static ImmutableSet<Move> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 		List<Move> singleMoves = new ArrayList<>(makeSingleMoves(setup, detectives, player, source));
 		List<Move> allMoves = new ArrayList<>();
+		ImmutableSet<SingleMove> temp;
 		if (player.isMrX()){
 			for (Move m : singleMoves){
-
+				temp = makeSingleMoves(setup,detectives,player,((SingleMove)m).destination);
+				for (Move n : temp){
+					allMoves.add(new DoubleMove(player.piece(), m.source(), ((SingleMove)m).ticket, ((SingleMove)m).destination, ((SingleMove)n).ticket, ((SingleMove)n).destination));
+				}
 			}
 		}
-
 		return ImmutableSet.copyOf(allMoves);
+	}
+
+	@Nonnull @Override public GameState build(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
+		return new MyGameState(setup, ImmutableSet.of(MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
 
 }
