@@ -118,10 +118,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return win;
 		}
 
+		// Making doubles even when double ticket not there
+		// Single moves aint there
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
 			Set<Move> allMoves = new HashSet<>();
 			for(Player player : everyone){
 				allMoves.addAll(getAllMoves(setup, detectives, player, player.location()));
+			}
+			for (Move m : allMoves){
+				System.out.println(m);
 			}
 			return ImmutableSet.copyOf(allMoves);
 		}
@@ -156,10 +161,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	}
 
 	private static ImmutableSet<Move> getAllMoves(GameSetup setup, List<Player> detectives, Player player, int source){
-		List<Move> singleMoves = new ArrayList<>(makeSingleMoves(setup, detectives, player, source));
-		List<Move> allMoves = new ArrayList<>();
+		Set<Move> singleMoves = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
+		Set<Move> allMoves = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
 		ImmutableSet<SingleMove> temp;
-		if (player.isMrX()){
+		if (player.isMrX() && player.has(Ticket.DOUBLE)){
 			for (Move m : singleMoves){
 				temp = makeSingleMoves(setup,detectives,player,((SingleMove)m).destination);
 				for (Move n : temp){
