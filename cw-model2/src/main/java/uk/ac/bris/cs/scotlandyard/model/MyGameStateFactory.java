@@ -43,10 +43,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			winner = getWinner();
 
 
-			// mrX cannot be null and detectives list cannot be empty.
-			if ((mrX == null) || (detectives.size() == 0)) throw new NullPointerException();
-			// check if Player mrX is actually MrX.
-			if (mrX.isDetective()) throw new IllegalArgumentException();
+			// detectives list cannot be empty.
+			if ((detectives.size() == 0)) throw new NullPointerException();
+			//  mrX cannot be null and check if Player mrX is actually MrX.
+			if ((mrX == null) || mrX.isDetective()) throw new IllegalArgumentException();
 
 			for (Player detective : detectives){
 				// Ensure that all Players in detectives are actual detectives
@@ -124,7 +124,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		// NEED TO MAKE IT SO THAT MOVES ARE OF NEXT PLAYER AND NOT MRX ONLY -> REMAINING
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
 			Set<Move> allMoves = new HashSet<>();
-			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
+			Player nextToPlay;
+			nextToPlay = pieceToPlayer(remaining.iterator().next());
+			if (nextToPlay == null) throw new IllegalArgumentException();
 			if (nextToPlay.isMrX()) {
 				allMoves = getAllMoves(setup, detectives, nextToPlay, nextToPlay.location());
 			} else {
