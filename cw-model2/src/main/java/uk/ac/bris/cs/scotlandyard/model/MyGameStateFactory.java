@@ -58,20 +58,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			//  mrX cannot be null and check if Player mrX is actually MrX.
 			if ((mrX == null) || mrX.isDetective()) throw new IllegalArgumentException();
 
+			Set<Integer> detLocations = new HashSet<>();
 			for (Player detective : detectives){
 				// Ensure that all Players in detectives are actual detectives
 				if (detective.isMrX()) throw new IllegalArgumentException();
 				// Ensure that detectives do not have SECRET or DOUBLE tickets
 				if (detective.has(Ticket.SECRET) || (detective.has(Ticket.DOUBLE))) throw new IllegalArgumentException();
+				// Any duplicate detective locations would not be added to this set
+				detLocations.add(detective.location());
 			}
 
-			Set<Integer> uniqueLocations = new HashSet<>();
-			for (Player player : everyone){
-				// Any duplicate locations would not be added to this set
-				uniqueLocations.add(player.location());
-			}
-			//if duplicates -> uniqueLocations would be less than everyone and thus thrown an error if game is not done
-			if ((uniqueLocations.size() < everyone.size()) && winner.isEmpty()) throw new IllegalArgumentException();
+			//if duplicates -> uniqueLocations would be less than detectives and thus thrown an error
+			if ((detLocations.size() < detectives.size())) throw new IllegalArgumentException();
 			//Should have rounds to be a valid game.
 			if (setup.rounds.isEmpty()) throw new IllegalArgumentException();
 			//Check if graphs are not empty
