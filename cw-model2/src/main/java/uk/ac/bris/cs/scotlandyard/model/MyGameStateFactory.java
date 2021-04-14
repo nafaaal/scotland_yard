@@ -48,12 +48,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				winner = ImmutableSet.of(mrX.piece());
 			} else if (isMrxCaught()) {
 				winner = ImmutableSet.copyOf(detectivePieces());
-				System.out.println(winner);
 			} else {
 				winner = ImmutableSet.of();
 			}
-
-
 
 
 			// detectives list cannot be empty.
@@ -73,8 +70,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// Any duplicate locations would not be added to this set
 				uniqueLocations.add(player.location());
 			}
-			//if duplicates -> uniqueLocations would be less than everyone and thus thrown an error
-			if (uniqueLocations.size() < everyone.size()) throw new IllegalArgumentException();
+			//if duplicates -> uniqueLocations would be less than everyone and thus thrown an error if game is not done
+			if ((uniqueLocations.size() < everyone.size()) && winner.isEmpty()) throw new IllegalArgumentException();
 			//Should have rounds to be a valid game.
 			if (setup.rounds.isEmpty()) throw new IllegalArgumentException();
 			//Check if graphs are not empty
@@ -139,6 +136,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
+//			if (winner != null) return ImmutableSet.of();
 			Set<Move> allMoves = new HashSet<>();
 			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
 			if (nextToPlay == null) throw new IllegalArgumentException();
@@ -232,31 +230,27 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void useTicket(Move m){
-			Player p = pieceToPlayer(m.commencedBy());
-			Iterable<Ticket> tickets_used = m.tickets();
-			if (p.isMrX()){
+			Player copyOfPlayer = pieceToPlayer(m.commencedBy());
+			if (copyOfPlayer.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
 				if (m instanceof SingleMove) {
-					int d = ((SingleMove) m).destination;
-					Ticket t  = ((SingleMove) m).ticket;
-					mrX = p.use(t).at(d);
+					mrX = copyOfPlayer.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
 				}
 				if (m instanceof DoubleMove) {
-					int d1 = ((DoubleMove) m).destination1;
-					Ticket t1  = ((DoubleMove) m).ticket1;
-					int d2 = ((DoubleMove) m).destination2;
-					Ticket t2  = ((DoubleMove) m).ticket2;
-					mrX =  p.use(t1).at(d1);
-					mrX =  p.use(t2).at(d2);
+					mrX =  copyOfPlayer.use(((DoubleMove) m).ticket1).at(((DoubleMove) m).destination1);
+					mrX =  copyOfPlayer.use(((DoubleMove) m).ticket2).at(((DoubleMove) m).destination2);
 				}
-			} else {
-				Set<Player> dets = new HashSet<>();
-				int d = ((SingleMove) m).destination;
-				Ticket t  = ((SingleMove) m).ticket;
-				for (Player pl : detectives) {
-					if (m.commencedBy() == pl.piece()) dets.add(pl.use(t).at(d));
-					else dets.add(pl);
+			} else { // Detectives can only make a singleMove.
+				Set<Player> updatedDetectives = new HashSet<>();
+				for (Player copyOfDetective : detectives) {
+					// change location, tickets of detective who made the move, and keeping others the same
+					if (m.commencedBy() == copyOfDetective.piece()) {
+						Player newDetective = copyOfDetective.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
+						updatedDetectives.add(newDetective);
+					} else {
+						updatedDetectives.add(copyOfDetective);
+					}
 				}
-				detectives = ImmutableList.copyOf(dets);
+				detectives = ImmutableList.copyOf(updatedDetectives);
 			}
 		}
 
@@ -264,16 +258,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			//need to update location
 		}
 
-		private void updateLog(Move move, Player pl){
-			// Need to append to current log and not overwrite
-			List<LogEntry> tempLog = new ArrayList<>();
+		//Log needs to make non-hidden every 5th move
+		private void updateLog(Move m){
+			Player pl = pieceToPlayer(m.commencedBy());
+			Set<LogEntry> tempLog = new HashSet<>(Set.copyOf(log));
 			if (pl.isMrX()) {
-				if (move instanceof SingleMove) {
-					tempLog.add(LogEntry.hidden(((SingleMove) move).ticket));
+				if (m instanceof SingleMove) {
+					tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
 				}
-				if (move instanceof DoubleMove) {
-					tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket1));
-					tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket2));
+				if (m instanceof DoubleMove) {
+					tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
+					tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
 				}
 			}
 			log = ImmutableList.copyOf(tempLog);
@@ -291,10 +286,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Nonnull @Override public GameState advance(Move move) {
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
-			// need to make move -> therefore update remaining(done), tickets and logs(doing)
-			Player pl = pieceToPlayer(move.commencedBy());
+			// need to make move -> therefore update remaining(done), tickets(done) and logs(doing)
 			remaining = createRemaining(move.commencedBy());
-			updateLog(move, pl);
+			updateLog(move);
 			useTicket(move);
 
 			return new MyGameState(setup, remaining, log, mrX, detectives);
@@ -311,5 +305,3 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 //Log needs to make non-hidden every 5th move
 //Give det tickets to mrX
-// Need to append to current log and not overwrite
-//need to update location
