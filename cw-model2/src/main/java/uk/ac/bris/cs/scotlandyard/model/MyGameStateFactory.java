@@ -242,8 +242,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				for (Player copyOfDetective : detectives) {
 					// change location, tickets of detective who made the move, and keeping others the same
 					if (m.commencedBy() == copyOfDetective.piece()) {
-						Player newDetective = copyOfDetective.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
+						Ticket tic = ((SingleMove) m).ticket;
+						Player newDetective = copyOfDetective.use(tic).at(((SingleMove) m).destination);
 						updatedDetectives.add(newDetective);
+						// Give used ticket to mrX
+						mrX = mrX.give(tic);
 					} else {
 						updatedDetectives.add(copyOfDetective);
 					}
