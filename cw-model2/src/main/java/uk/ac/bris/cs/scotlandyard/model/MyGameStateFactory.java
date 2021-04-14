@@ -3,6 +3,8 @@ package uk.ac.bris.cs.scotlandyard.model;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import java.lang.reflect.Array;
 import java.util.*;
 import javax.annotation.Nonnull;
 
@@ -40,7 +42,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			everyone = ImmutableList.copyOf(allPlayers);
 
 			moves = getAvailableMoves();
-			winner = getWinner();
+
+			//Make into function
+			if(log.size() == setup.rounds.size()) {
+				winner = ImmutableSet.of(mrX.piece());
+			} else if (isMrxCaught()) {
+				winner = ImmutableSet.copyOf(detectivePieces());
+				System.out.println(winner);
+			} else {
+				winner = ImmutableSet.of();
+			}
+
+
 
 
 			// detectives list cannot be empty.
@@ -113,19 +126,21 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		// NEED TO FIND WINNERS
-		@Nonnull @Override public ImmutableSet<Piece> getWinner(){
-			ImmutableSet<Piece> win =  ImmutableSet.of();;
-			if (log.size() == 0) return win;
-			return win;
+		@Nonnull @Override public ImmutableSet<Piece> getWinner() {
+			return winner;
 		}
 
-		// Making doubles even when double ticket not there
-		// Also need to add get availible moves for next player and not all players
-		// NEED TO MAKE IT SO THAT MOVES ARE OF NEXT PLAYER AND NOT MRX ONLY -> REMAINING
+		private ImmutableSet<Piece> detectivePieces() {
+			Set<Piece> dets = new HashSet<>();
+			for (Player detective : detectives){
+				dets.add(detective.piece());
+			}
+			return ImmutableSet.copyOf(dets);
+		}
+
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
 			Set<Move> allMoves = new HashSet<>();
-			Player nextToPlay;
-			nextToPlay = pieceToPlayer(remaining.iterator().next());
+			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
 			if (nextToPlay == null) throw new IllegalArgumentException();
 			if (nextToPlay.isMrX()) {
 				allMoves = getAllMoves(setup, detectives, nextToPlay, nextToPlay.location());
@@ -217,13 +232,48 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void useTicket(Iterable<Ticket> tickets){
-			//need to make
+			//need to update tickets
+		}
+
+		private void updateLocation(){
+			//need to update location
+		}
+
+		private void updateLog(Move move, Player pl){
+			//NEED TO SEPARATE HIDDEN AND NON HIDDEN ROUNDS --> NOW ONLY ADDING HIDDEN
+			// Need to append to current log and not overwrite
+			List<LogEntry> tempLog = new ArrayList<>();
+			if (pl.isMrX()) {
+				if (move instanceof SingleMove) {
+					tempLog.add(LogEntry.hidden(((SingleMove) move).ticket));
+				}
+				if (move instanceof DoubleMove) {
+					tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket1));
+					tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket2));
+				}
+			}
+			log = ImmutableList.copyOf(tempLog);
+
+		}
+
+		private boolean isMrxCaught(){
+			for (Player det : detectives) {
+				if (det.location() == mrX.location()) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		@Nonnull @Override public GameState advance(Move move) {
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
-			// need to make move -> therefore update remaining(done), tickets and logs
+			// need to make move -> therefore update remaining(done), tickets and logs(doing)
+			Player pl = pieceToPlayer(move.commencedBy());
 			remaining = createRemaining(move.commencedBy());
+			updateLog(move, pl);
+
+
+
 
 			return new MyGameState(setup, remaining, log, mrX, detectives);
 		}
