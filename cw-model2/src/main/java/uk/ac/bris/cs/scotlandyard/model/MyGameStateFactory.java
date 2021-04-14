@@ -69,7 +69,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 
 			//if duplicates -> uniqueLocations would be less than detectives and thus thrown an error
-			if ((detLocations.size() < detectives.size())) throw new IllegalArgumentException();
+			if ((detLocations.size() != detectives.size())) throw new IllegalArgumentException();
 			//Should have rounds to be a valid game.
 			if (setup.rounds.isEmpty()) throw new IllegalArgumentException();
 			//Check if graphs are not empty
@@ -259,7 +259,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		//Log needs to make non-hidden every 5th move
 		private void updateLog(Move m){
 			Player pl = pieceToPlayer(m.commencedBy());
-			Set<LogEntry> tempLog = new HashSet<>(Set.copyOf(log));
+			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
 			if (pl.isMrX()) {
 				if (m instanceof SingleMove) {
 					tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
