@@ -23,7 +23,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableSet<Piece> remaining;
 		private ImmutableList<LogEntry> log;
 		private Player mrX;
-		private final ImmutableList<Player> detectives;
+		private ImmutableList<Player> detectives;
 		private final ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
@@ -231,8 +231,33 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return ImmutableSet.copyOf(remains);
 		}
 
-		private void useTicket(Iterable<Ticket> tickets){
-			//need to update tickets
+		private void useTicket(Move m){
+			Player p = pieceToPlayer(m.commencedBy());
+			Iterable<Ticket> tickets_used = m.tickets();
+			if (p.isMrX()){
+				if (m instanceof SingleMove) {
+					int d = ((SingleMove) m).destination;
+					Ticket t  = ((SingleMove) m).ticket;
+					mrX = p.use(t).at(d);
+				}
+				if (m instanceof DoubleMove) {
+					int d1 = ((DoubleMove) m).destination1;
+					Ticket t1  = ((DoubleMove) m).ticket1;
+					int d2 = ((DoubleMove) m).destination2;
+					Ticket t2  = ((DoubleMove) m).ticket2;
+					mrX =  p.use(t1).at(d1);
+					mrX =  p.use(t2).at(d2);
+				}
+			} else {
+				Set<Player> dets = new HashSet<>();
+				int d = ((SingleMove) m).destination;
+				Ticket t  = ((SingleMove) m).ticket;
+				for (Player pl : detectives) {
+					if (m.commencedBy() == pl.piece()) dets.add(pl.use(t).at(d));
+					else dets.add(pl);
+				}
+				detectives = ImmutableList.copyOf(dets);
+			}
 		}
 
 		private void updateLocation(){
@@ -240,7 +265,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void updateLog(Move move, Player pl){
-			//NEED TO SEPARATE HIDDEN AND NON HIDDEN ROUNDS --> NOW ONLY ADDING HIDDEN
 			// Need to append to current log and not overwrite
 			List<LogEntry> tempLog = new ArrayList<>();
 			if (pl.isMrX()) {
@@ -271,9 +295,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Player pl = pieceToPlayer(move.commencedBy());
 			remaining = createRemaining(move.commencedBy());
 			updateLog(move, pl);
-
-
-
+			useTicket(move);
 
 			return new MyGameState(setup, remaining, log, mrX, detectives);
 		}
@@ -286,3 +308,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	}
 
 }
+
+//Log needs to make non-hidden every 5th move
+//Give det tickets to mrX
+// Need to append to current log and not overwrite
+//need to update location
