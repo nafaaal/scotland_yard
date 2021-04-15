@@ -48,6 +48,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			} else if (isMrxCaught()) {
 				winner = ImmutableSet.copyOf(detectivePieces());
 				moves = ImmutableSet.of();
+			} else if (detTickets()) {
+				winner = ImmutableSet.of(mrX.piece());
+				moves = ImmutableSet.of();
 			} else {
 				winner = ImmutableSet.of();
 			}
@@ -124,6 +127,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return winner;
 		}
 
+		private boolean detTickets(){
+			int count = 0;
+			for (Player p : detectives){
+				ImmutableMap<Ticket, Integer> tickets = p.tickets();
+				for (Map.Entry<Ticket, Integer> pair : tickets.entrySet()) {
+					count +=pair.getValue();
+				}
+			}
+			return count == 0;
+		}
+
 		private ImmutableSet<Piece> detectivePieces() {
 			Set<Piece> dets = new HashSet<>();
 			for (Player detective : detectives){
@@ -146,6 +160,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				for(Piece p : remaining){
 					allMoves.addAll(getAllMoves(setup, detectives, pieceToPlayer(p), pieceToPlayer(p).location()));
 				}
+			}
+			return ImmutableSet.copyOf(allMoves);
+		}
+
+		private ImmutableSet<Move> getDetMoves() {
+			Set<Move> allMoves = new HashSet<>();
+				for(Piece p : remaining){
+					if (p.isDetective()){
+						allMoves.addAll(getAllMoves(setup, detectives, pieceToPlayer(p), pieceToPlayer(p).location()));
+					}
 			}
 			return ImmutableSet.copyOf(allMoves);
 		}
