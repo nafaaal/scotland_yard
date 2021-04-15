@@ -43,8 +43,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			moves = getMoves();
 
 //			Make into function
-			if(log.size() == setup.rounds.size()) {
+			if(log.size() == setup.rounds.size() && this.remaining.contains(mrX.piece())) {
 				winner = ImmutableSet.of(mrX.piece());
+				moves = ImmutableSet.of();
 			} else if (isMrxCaught()) {
 				winner = ImmutableSet.copyOf(detectivePieces());
 				moves = ImmutableSet.of();
