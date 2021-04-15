@@ -42,24 +42,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			moves = getMoves();
 
-//			Make into function
-			if(log.size() == setup.rounds.size() && this.remaining.contains(mrX.piece())) {
-				winner = ImmutableSet.of(mrX.piece());
-				moves = ImmutableSet.of();
-			} else if (isMrxCaught()) {
-				winner = ImmutableSet.copyOf(detectivePieces());
-				moves = ImmutableSet.of();
-			} else if (detTickets()) {
-				winner = ImmutableSet.of(mrX.piece());
-				moves = ImmutableSet.of();
-			} else if (mrXstuck()) {
-				winner = ImmutableSet.copyOf(detectivePieces());
-				moves = ImmutableSet.of();
-			} else {
-				winner = ImmutableSet.of();
-			}
-
-
+			findWinner();
 
 			// detectives list cannot be empty.
 			if ((detectives.size() == 0)) throw new NullPointerException();
@@ -133,6 +116,24 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
 			return moves;
+		}
+
+		private void findWinner(){
+			if(log.size() == setup.rounds.size() && this.remaining.contains(mrX.piece())) {
+				winner = ImmutableSet.of(mrX.piece());
+				moves = ImmutableSet.of();
+			} else if (isMrxCaught()) {
+				winner = ImmutableSet.copyOf(detectivePieces());
+				moves = ImmutableSet.of();
+			} else if (detTickets()) {
+				winner = ImmutableSet.of(mrX.piece());
+				moves = ImmutableSet.of();
+			} else if (mrXstuck()) {
+				winner = ImmutableSet.copyOf(detectivePieces());
+				moves = ImmutableSet.of();
+			} else {
+				winner = ImmutableSet.of();
+			}
 		}
 
 		private boolean detTickets(){
@@ -296,7 +297,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 		}
 
-		//Log needs to make non-hidden every 5th move
 		private void updateLog(Move m){
 			Player pl = pieceToPlayer(m.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
@@ -338,21 +338,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Nonnull @Override public GameState advance(Move move) {
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
-			// need to make move -> therefore update remaining(done), tickets(done) and logs(doing)
 			remaining = createRemaining(move.commencedBy());
 			updateLog(move);
 			updateTickets(move);
-
 			return new MyGameState(setup, remaining, log, mrX, detectives);
 		}
 	}
 
-
-
 	@Nonnull @Override public GameState build(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
 		return new MyGameState(setup, ImmutableSet.of(MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
-
 }
-
-//Log needs to make non-hidden every 5th move
