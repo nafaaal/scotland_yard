@@ -271,12 +271,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Player copyOfPlayer = pieceToPlayer(m.commencedBy());
 			if (copyOfPlayer.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
 				if (m instanceof SingleMove) {
-					mrX = copyOfPlayer.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
+					mrX = mrX.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
 				}
 				if (m instanceof DoubleMove) {
-//					mrX = copyOfPlayer.use(Ticket.DOUBLE);
-					mrX = copyOfPlayer.use(((DoubleMove) m).ticket1).at(((DoubleMove) m).destination1);
-					mrX = copyOfPlayer.use(((DoubleMove) m).ticket2).at(((DoubleMove) m).destination2);
+					mrX = mrX.use(Ticket.DOUBLE).at(m.source());
+					mrX = mrX.use(((DoubleMove) m).ticket1).at(((DoubleMove) m).destination1);
+					mrX = mrX.use(((DoubleMove) m).ticket2).at(((DoubleMove) m).destination2);
 				}
 			} else { // Detectives can only make a singleMove.
 				Set<Player> updatedDetectives = new HashSet<>();
