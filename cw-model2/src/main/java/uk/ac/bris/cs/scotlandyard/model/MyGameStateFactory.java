@@ -274,8 +274,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					mrX = copyOfPlayer.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
 				}
 				if (m instanceof DoubleMove) {
-					mrX =  copyOfPlayer.use(((DoubleMove) m).ticket1).at(((DoubleMove) m).destination1);
-					mrX =  copyOfPlayer.use(((DoubleMove) m).ticket2).at(((DoubleMove) m).destination2);
+//					mrX = copyOfPlayer.use(Ticket.DOUBLE);
+					mrX = copyOfPlayer.use(((DoubleMove) m).ticket1).at(((DoubleMove) m).destination1);
+					mrX = copyOfPlayer.use(((DoubleMove) m).ticket2).at(((DoubleMove) m).destination2);
 				}
 			} else { // Detectives can only make a singleMove.
 				Set<Player> updatedDetectives = new HashSet<>();
@@ -300,27 +301,30 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Player pl = pieceToPlayer(m.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
 			if  (pl.isMrX()) {
-				if (setup.rounds.get(this.log.size())) {
-					if (m instanceof SingleMove) {
+				if (m instanceof SingleMove) {
+					if (setup.rounds.get(this.log.size())) {
 						tempLog.add(LogEntry.reveal(((SingleMove) m).ticket, ((SingleMove) m).destination));
-					}
-					if (m instanceof DoubleMove) {
-						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket1, ((DoubleMove) m).destination1));
-						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket2, ((DoubleMove) m).destination2));
-					}
-				} else {
-					if (m instanceof SingleMove) {
+					} else {
 						tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
 					}
-					if (m instanceof DoubleMove) {
+				}
+				if (m instanceof DoubleMove) {
+					if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size()+1)) {
+						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket1, ((DoubleMove) m).destination1));
+						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket2, ((DoubleMove) m).destination2));
+					} else if (setup.rounds.get(this.log.size()+1)){
+						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
+						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket2, ((DoubleMove) m).destination2));
+					} else if (setup.rounds.get(this.log.size())){
+						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket1, ((DoubleMove) m).destination1));
+						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
+					} else {
 						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
 						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
 					}
 				}
 			}
 			log = ImmutableList.copyOf(tempLog);
-
-
 		}
 
 		private boolean isMrxCaught(){
