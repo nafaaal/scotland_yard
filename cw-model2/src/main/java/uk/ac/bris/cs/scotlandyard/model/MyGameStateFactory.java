@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import java.lang.reflect.Array;
 import java.util.*;
 import javax.annotation.Nonnull;
 
@@ -41,16 +40,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			allPlayers.addAll(detectives);
 			everyone = ImmutableList.copyOf(allPlayers);
 
-			moves = getAvailableMoves();
+			moves = getMoves();
 
-			//Make into function
+//			Make into function
 			if(log.size() == setup.rounds.size()) {
 				winner = ImmutableSet.of(mrX.piece());
 			} else if (isMrxCaught()) {
 				winner = ImmutableSet.copyOf(detectivePieces());
+				moves = ImmutableSet.of();
 			} else {
 				winner = ImmutableSet.of();
 			}
+
 
 
 			// detectives list cannot be empty.
@@ -79,14 +80,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		 class myBoard implements TicketBoard{
 			 ImmutableMap<Ticket, Integer> tickets;
+
 			 myBoard(ImmutableMap<Ticket, Integer> tickets){
-				this.tickets = tickets;
+			 	this.tickets = tickets;
 			}
 
 			public int getCount(@Nonnull Ticket ticket){
-				return tickets.getOrDefault(ticket,0);
+			 	return tickets.getOrDefault(ticket,0);
 			}
-
 		}
 
 		@Nonnull @Override public GameSetup getSetup() {
@@ -115,12 +116,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return Optional.empty();
 		}
 
-		//NEED TO MAKE AND BUILD LOG?
 		@Nonnull @Override public ImmutableList<LogEntry> getMrXTravelLog() {
 			return log;
 		}
 
-		// NEED TO FIND WINNERS
 		@Nonnull @Override public ImmutableSet<Piece> getWinner() {
 			return winner;
 		}
@@ -134,7 +133,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
-//			if (winner != null) return ImmutableSet.of();
+			return moves;
+		}
+
+		private ImmutableSet<Move> getMoves() {
 			Set<Move> allMoves = new HashSet<>();
 			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
 			if (nextToPlay == null) throw new IllegalArgumentException();
@@ -147,6 +149,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 			return ImmutableSet.copyOf(allMoves);
 		}
+
 
 		private ImmutableSet<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 			Set<SingleMove> singleMoves = new HashSet<>();
@@ -172,6 +175,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Move> getAllMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+//			if (winner != null) return ImmutableSet.of();
 			Set<Move> firstMove = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
 			Set<Move> doubleMoves = new HashSet<>();
 			ImmutableSet<SingleMove> secondMove;
@@ -227,7 +231,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return ImmutableSet.copyOf(remains);
 		}
 
-		private void useTicket(Move m){
+		private void updateTickets(Move m){
 			Player copyOfPlayer = pieceToPlayer(m.commencedBy());
 			if (copyOfPlayer.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
 				if (m instanceof SingleMove) {
@@ -255,14 +259,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 		}
 
-		private void updateLocation(){
-			//need to update location
-		}
-
 		//Log needs to make non-hidden every 5th move
 		private void updateLog(Move m){
 			Player pl = pieceToPlayer(m.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
+//			if (setup.rounds.get(log.size())) {
+//				tempLog.add(LogEntry.reveal(((SingleMove) m).ticket, ((SingleMove) m).destination));
+//			} else {
+////			if (!(rounds.contains(log.size()))) {
 			if (pl.isMrX()) {
 				if (m instanceof SingleMove) {
 					tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
@@ -273,6 +277,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			}
 			log = ImmutableList.copyOf(tempLog);
+
 
 		}
 
@@ -290,7 +295,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// need to make move -> therefore update remaining(done), tickets(done) and logs(doing)
 			remaining = createRemaining(move.commencedBy());
 			updateLog(move);
-			useTicket(move);
+			updateTickets(move);
 
 			return new MyGameState(setup, remaining, log, mrX, detectives);
 		}
