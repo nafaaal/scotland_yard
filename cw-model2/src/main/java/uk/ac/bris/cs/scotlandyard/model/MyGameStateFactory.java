@@ -299,9 +299,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private void updateLog(Move m){
 			Player pl = pieceToPlayer(m.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
-			List<Integer> locations = new ArrayList<>(ScotlandYard.REVEAL_ROUND);
 			if  (pl.isMrX()) {
-				if (locations.contains(log.size())) {
+				if (setup.rounds.get(this.log.size())) {
 					if (m instanceof SingleMove) {
 						tempLog.add(LogEntry.reveal(((SingleMove) m).ticket, ((SingleMove) m).destination));
 					}
