@@ -52,6 +52,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			} else if (detTickets()) {
 				winner = ImmutableSet.of(mrX.piece());
 				moves = ImmutableSet.of();
+			} else if (mrXstuck()) {
+				winner = ImmutableSet.copyOf(detectivePieces());
+				moves = ImmutableSet.of();
 			} else {
 				winner = ImmutableSet.of();
 			}
@@ -128,6 +131,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return winner;
 		}
 
+		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
+			return moves;
+		}
+
 		private boolean detTickets(){
 			int count = 0;
 			for (Player p : detectives){
@@ -139,6 +146,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return count == 0;
 		}
 
+		private boolean mrXstuck(){
+			Set<Move> mrxMoves = new HashSet<>(getmrXMoves());
+			return (mrxMoves.size() == 0 && this.remaining.contains(mrX.piece()));
+		}
+
 		private ImmutableSet<Piece> detectivePieces() {
 			Set<Piece> dets = new HashSet<>();
 			for (Player detective : detectives){
@@ -147,20 +159,19 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return ImmutableSet.copyOf(dets);
 		}
 
-		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() {
-			return moves;
+		private ImmutableSet<Move> getMoves() {
+			Set<Move> allMoves = new HashSet<>();
+			allMoves.addAll(getmrXMoves());
+			allMoves.addAll(getDetMoves());
+			return ImmutableSet.copyOf(allMoves);
 		}
 
-		private ImmutableSet<Move> getMoves() {
+		private ImmutableSet<Move> getmrXMoves() {
 			Set<Move> allMoves = new HashSet<>();
 			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
 			if (nextToPlay == null) throw new IllegalArgumentException();
 			if (nextToPlay.isMrX()) {
 				allMoves = getAllMoves(setup, detectives, nextToPlay, nextToPlay.location());
-			} else {
-				for(Piece p : remaining){
-					allMoves.addAll(getAllMoves(setup, detectives, pieceToPlayer(p), pieceToPlayer(p).location()));
-				}
 			}
 			return ImmutableSet.copyOf(allMoves);
 		}
@@ -288,17 +299,24 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private void updateLog(Move m){
 			Player pl = pieceToPlayer(m.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
-//			if (setup.rounds.get(log.size())) {
-//				tempLog.add(LogEntry.reveal(((SingleMove) m).ticket, ((SingleMove) m).destination));
-//			} else {
-////			if (!(rounds.contains(log.size()))) {
-			if (pl.isMrX()) {
-				if (m instanceof SingleMove) {
-					tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
-				}
-				if (m instanceof DoubleMove) {
-					tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
-					tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
+			List<Integer> locations = new ArrayList<>(ScotlandYard.REVEAL_ROUND);
+			if  (pl.isMrX()) {
+				if (locations.contains(log.size())) {
+					if (m instanceof SingleMove) {
+						tempLog.add(LogEntry.reveal(((SingleMove) m).ticket, ((SingleMove) m).destination));
+					}
+					if (m instanceof DoubleMove) {
+						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket1, ((DoubleMove) m).destination1));
+						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket2, ((DoubleMove) m).destination2));
+					}
+				} else {
+					if (m instanceof SingleMove) {
+						tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
+					}
+					if (m instanceof DoubleMove) {
+						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
+						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
+					}
 				}
 			}
 			log = ImmutableList.copyOf(tempLog);
@@ -335,4 +353,3 @@ public final class MyGameStateFactory implements Factory<GameState> {
 }
 
 //Log needs to make non-hidden every 5th move
-//Give det tickets to mrX
