@@ -23,7 +23,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableList<LogEntry> log;
 		private Player mrX;
 		private ImmutableList<Player> detectives;
-		private final ImmutableList<Player> everyone;
+		private ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
 
@@ -35,36 +35,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.mrX = mrX;
 			this.detectives = detectives;
 
-			List<Player> allPlayers = new ArrayList<>();
-			allPlayers.add(mrX);
-			allPlayers.addAll(detectives);
-			everyone = ImmutableList.copyOf(allPlayers);
-
-			moves = getMoves();
-
+			setEveryone();
+			setMoves();
 			findWinner();
-
-			// detectives list cannot be empty.
-			if ((detectives.size() == 0)) throw new NullPointerException();
-			//  mrX cannot be null and check if Player mrX is actually MrX.
-			if ((mrX == null) || mrX.isDetective()) throw new IllegalArgumentException();
-
-			Set<Integer> detLocations = new HashSet<>();
-			for (Player detective : detectives){
-				// Ensure that all Players in detectives are actual detectives
-				if (detective.isMrX()) throw new IllegalArgumentException();
-				// Ensure that detectives do not have SECRET or DOUBLE tickets
-				if (detective.has(Ticket.SECRET) || (detective.has(Ticket.DOUBLE))) throw new IllegalArgumentException();
-				// Any duplicate detective locations would not be added to this set
-				detLocations.add(detective.location());
-			}
-
-			//if duplicates -> uniqueLocations would be less than detectives and thus thrown an error
-			if ((detLocations.size() != detectives.size())) throw new IllegalArgumentException();
-			//Should have rounds to be a valid game.
-			if (setup.rounds.isEmpty()) throw new IllegalArgumentException();
-			//Check if graphs are not empty
-			if (setup.graph.nodes().isEmpty()) throw new IllegalArgumentException();
+			validate();
 
 		}
 
@@ -118,6 +92,38 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return moves;
 		}
 
+		private void setEveryone(){
+			List<Player> allPlayers = new ArrayList<>();
+			allPlayers.add(mrX);
+			allPlayers.addAll(detectives);
+			everyone = ImmutableList.copyOf(allPlayers);
+		}
+
+		private void validate(){
+			// detectives list cannot be empty.
+			if ((detectives.size() == 0)) throw new NullPointerException();
+			//  mrX cannot be null and check if Player mrX is actually MrX.
+			if ((mrX == null) || mrX.isDetective()) throw new IllegalArgumentException();
+
+			Set<Integer> detLocations = new HashSet<>();
+			for (Player det : detectives){
+				// Ensure that all Players in detectives are actual detectives
+				if (det.isMrX()) throw new IllegalArgumentException();
+				// Ensure that detectives do not have SECRET or DOUBLE tickets
+				if (det.has(Ticket.SECRET) || (det.has(Ticket.DOUBLE))) throw new IllegalArgumentException();
+				// Any duplicate detective locations would not be added to this set
+				detLocations.add(det.location());
+			}
+
+			//if duplicates -> uniqueLocations would be less than detectives and thus thrown an error
+			if ((detLocations.size() != detectives.size())) throw new IllegalArgumentException();
+			//Should have rounds to be a valid game.
+			if (setup.rounds.isEmpty()) throw new IllegalArgumentException();
+			//Check if graphs are not empty
+			if (setup.graph.nodes().isEmpty()) throw new IllegalArgumentException();
+		}
+
+
 		private void findWinner(){
 			boolean gameRoundsReached = (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());
 			if(gameRoundsReached || detEmptyTickets()) {
@@ -154,11 +160,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return ImmutableSet.copyOf(dets);
 		}
 
-		private ImmutableSet<Move> getMoves() {
+		private void setMoves() {
 			Set<Move> allMoves = new HashSet<>();
 			allMoves.addAll(getmrXMoves());
 			allMoves.addAll(getDetMoves());
-			return ImmutableSet.copyOf(allMoves);
+			moves = ImmutableSet.copyOf(allMoves);
 		}
 
 		private ImmutableSet<Move> getmrXMoves() {
@@ -292,30 +298,30 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 		}
 
-		private void updateLog(Move m){
-			Player pl = pieceToPlayer(m.commencedBy());
+		private void updateLog(Move move){
+			Player player = pieceToPlayer(move.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
-			if  (pl.isMrX()) {
-				if (m instanceof SingleMove) {
+			if  (player.isMrX()) {
+				if (move instanceof SingleMove) {
 					if (setup.rounds.get(this.log.size())) {
-						tempLog.add(LogEntry.reveal(((SingleMove) m).ticket, ((SingleMove) m).destination));
+						tempLog.add(LogEntry.reveal(((SingleMove) move).ticket, ((SingleMove) move).destination));
 					} else {
-						tempLog.add(LogEntry.hidden(((SingleMove) m).ticket));
+						tempLog.add(LogEntry.hidden(((SingleMove) move).ticket));
 					}
 				}
-				if (m instanceof DoubleMove) {
+				if (move instanceof DoubleMove) {
 					if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size()+1)) {
-						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket1, ((DoubleMove) m).destination1));
-						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket2, ((DoubleMove) m).destination2));
+						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket1, ((DoubleMove) move).destination1));
+						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket2, ((DoubleMove) move).destination2));
 					} else if (setup.rounds.get(this.log.size()+1)){
-						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
-						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket2, ((DoubleMove) m).destination2));
+						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket1));
+						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket2, ((DoubleMove) move).destination2));
 					} else if (setup.rounds.get(this.log.size())){
-						tempLog.add(LogEntry.reveal(((DoubleMove) m).ticket1, ((DoubleMove) m).destination1));
-						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
+						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket1, ((DoubleMove) move).destination1));
+						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket2));
 					} else {
-						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket1));
-						tempLog.add(LogEntry.hidden(((DoubleMove) m).ticket2));
+						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket1));
+						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket2));
 					}
 				}
 			}
