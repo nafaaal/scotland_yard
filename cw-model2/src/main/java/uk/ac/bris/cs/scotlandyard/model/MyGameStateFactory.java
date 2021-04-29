@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.*;
 import javax.annotation.Nonnull;
+import java.util.stream.Collectors;
 
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
@@ -59,25 +60,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public ImmutableSet<Piece> getPlayers() {
-			List<Piece> playerPieces = new ArrayList<>();
-			for(Player player : everyone){
-				playerPieces.add(player.piece());
-			}
-			return ImmutableSet.copyOf(playerPieces);
+			List<Piece> players = everyone
+					.stream()
+					.map(x -> x.piece())
+					.collect(Collectors.toList());
+			return ImmutableSet.copyOf(players);
 		}
 
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Detective det) {
 			for (Player detective : detectives) {
-				if (detective.piece().equals(det)) return Optional.of(detective.location());
+				if (detective.equals(pieceToPlayer(det))) return Optional.of(detective.location());
 			}
 			return Optional.empty();
 		}
 
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
 			for (Player player : everyone) {
-				if (player.piece().equals(piece)) return Optional.of(new myBoard(player.tickets()));
+				if (player.equals(pieceToPlayer(piece))) return Optional.of(new myBoard(player.tickets()));
 			}
 			return Optional.empty();
+
 		}
 
 		@Nonnull @Override public ImmutableList<LogEntry> getMrXTravelLog() {
@@ -153,10 +155,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Piece> detectivePieces() {
-			Set<Piece> dets = new HashSet<>();
-			for (Player detective : detectives){
-				dets.add(detective.piece());
-			}
+			List<Piece> dets = detectives
+					.stream()
+					.map(x -> x.piece())
+					.collect(Collectors.toList());
 			return ImmutableSet.copyOf(dets);
 		}
 
