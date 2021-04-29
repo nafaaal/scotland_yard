@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.*;
 import javax.annotation.Nonnull;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
@@ -214,13 +213,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Set<Move> firstMove = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
 			Set<Move> doubleMoves = new HashSet<>();
 			Set<SingleMove> secondMove;
-			if (player.has(Ticket.DOUBLE) && (setup.rounds.size()-1 != log.size())){
+			if (player.has(Ticket.DOUBLE) && (setup.rounds.size()-1 != log.size())){ //Should be enough rounds to make a double move.
 				for (Move first : firstMove){
 					player = player.use(first.tickets()); // update tickets so that correct double moves can be found
 					secondMove = makeSingleMoves(setup,detectives,player,((SingleMove)first).destination);
 					for (Move second : secondMove){
-						doubleMoves.add(new DoubleMove(player.piece(), first.source(), ((SingleMove)first).ticket, ((SingleMove)first).destination, ((SingleMove)second).ticket, ((SingleMove)second).destination));
-					}
+						doubleMoves.add(new DoubleMove( player.piece(),
+														first.source(),
+														((SingleMove)first).ticket,
+														((SingleMove)first).destination,
+														((SingleMove)second).ticket,
+														((SingleMove)second).destination));}
 					player = player.give(first.tickets()); // change tickets back
 				}
 			}
