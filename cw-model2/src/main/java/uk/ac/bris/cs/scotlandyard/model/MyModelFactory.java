@@ -22,6 +22,7 @@ public final class MyModelFactory implements Factory<Model> {
 
 		public void registerObserver(@Nonnull Observer observer) {
 			if (observer == null) throw new NullPointerException();
+			if (observers.contains(observer)) throw new IllegalArgumentException();
 			List<Observer> copyObservers = new ArrayList<>(observers);
 			copyObservers.add(observer);
 			observers = ImmutableSet.copyOf(copyObservers);
@@ -29,6 +30,7 @@ public final class MyModelFactory implements Factory<Model> {
 
 		public void unregisterObserver(@Nonnull Observer observer) {
 			if (observer == null) throw new NullPointerException();
+			if (!(observers.contains(observer))) throw new IllegalArgumentException();
 			List<Observer> copyObservers = new ArrayList<>(observers);
 			copyObservers.remove(observer);
 			observers = ImmutableSet.copyOf(copyObservers);
