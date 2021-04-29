@@ -1,11 +1,11 @@
 package uk.ac.bris.cs.scotlandyard.model;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.*;
 import javax.annotation.Nonnull;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
@@ -43,18 +43,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		}
 
-		 class myBoard implements TicketBoard{
-			 ImmutableMap<Ticket, Integer> tickets;
-
-			 myBoard(ImmutableMap<Ticket, Integer> tickets){
-			 	this.tickets = tickets;
-			}
-
-			public int getCount(@Nonnull Ticket ticket){
-			 	return tickets.getOrDefault(ticket,0);
-			}
-		}
-
 		@Nonnull @Override public GameSetup getSetup() {
 			return setup;
 		}
@@ -76,7 +64,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
 			for (Player player : everyone) {
-				if (player.equals(pieceToPlayer(piece))) return Optional.of(new myBoard(player.tickets()));
+				if (player.equals(pieceToPlayer(piece))) {
+					return Optional.of(tic -> player.tickets().getOrDefault(tic, 0));
+				}
 			}
 			return Optional.empty();
 
@@ -128,12 +118,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private void findWinner(){
 			boolean gameRoundsReached = (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());
+//			mrX wins if all rounds end without detectives winning or detectives tickets run out
 			if(gameRoundsReached || detEmptyTickets()) {
 				winner = ImmutableSet.of(mrX.piece());
 				moves = ImmutableSet.of();
+//			detectives mrX is stuck or caught
 			} else if (isMrxCaught() || isMrxStuck()) {
 				winner = ImmutableSet.copyOf(detectivePieces());
 				moves = ImmutableSet.of();
+//			otherwise game is not over -> no winner yet
 			} else {
 				winner = ImmutableSet.of();
 			}
@@ -141,12 +134,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private boolean detEmptyTickets(){
 			int count = 0;
+			//https://stackoverflow.com/questions/30089469/how-to-sum-values-in-a-map-with-a-stream
 			for (Player det : detectives){
-				ImmutableMap<Ticket, Integer> tickets = det.tickets();
-				for (Map.Entry<Ticket, Integer> pair : tickets.entrySet()) {
-					count +=pair.getValue();
+					count += det
+							.tickets()
+							.values()
+							.stream()
+							.mapToInt(x->x)
+							.sum();
 				}
-			}
 			return count == 0;
 		}
 
