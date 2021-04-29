@@ -50,7 +50,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Nonnull @Override public ImmutableSet<Piece> getPlayers() {
 			List<Piece> players = everyone
 					.stream()
-					.map(x -> x.piece())
+					.map(Player::piece)
 					.collect(Collectors.toList());
 			return ImmutableSet.copyOf(players);
 		}
@@ -153,7 +153,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableSet<Piece> detectivePieces() {
 			List<Piece> dets = detectives
 					.stream()
-					.map(x -> x.piece())
+					.map(Player::piece)
 					.collect(Collectors.toList());
 			return ImmutableSet.copyOf(dets);
 		}
