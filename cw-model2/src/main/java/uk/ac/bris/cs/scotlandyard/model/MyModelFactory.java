@@ -17,11 +17,11 @@ public final class MyModelFactory implements Factory<Model> {
 		}
 
 		public void registerObserver(@Nonnull Observer observer) {
-			System.out.println("do something");
+			if (observer == null) throw new NullPointerException();
 		}
 
 		public void unregisterObserver(@Nonnull Observer observer) {
-			System.out.println("do something");
+			if (observer == null) throw new NullPointerException();
 		}
 
 
@@ -37,7 +37,6 @@ public final class MyModelFactory implements Factory<Model> {
 	@Nonnull @Override public Model build(GameSetup setup,
 	                                      Player mrX,
 	                                      ImmutableList<Player> detectives) {
-		// TODO
-		throw new RuntimeException("Implement me!");
+		return new SomeModel();
 	}
 }
