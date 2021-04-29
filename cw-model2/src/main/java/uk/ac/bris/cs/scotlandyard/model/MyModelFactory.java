@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
+import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,7 @@ public final class MyModelFactory implements Factory<Model> {
 	public final class GameModel implements Model{
 
 		ImmutableSet<Observer> observers = ImmutableSet.of();
-		Board.GameState state;
+		GameState state;
 		GameSetup setup;
 		Player mrX;
 		ImmutableList<Player> detectives;
@@ -24,7 +25,6 @@ public final class MyModelFactory implements Factory<Model> {
 			this.setup = setup;
 			this.mrX = mrX;
 			this.detectives = detectives;
-
 			state = new MyGameStateFactory().build(setup,mrX,detectives);
 		}
 
@@ -53,15 +53,15 @@ public final class MyModelFactory implements Factory<Model> {
 		}
 
 		public void chooseMove(@Nonnull Move move) {
+			Observer.Event event;
 			state = state.advance(move);
 			if (!state.getWinner().isEmpty()){
-				for (Observer obs : observers){
-					obs.onModelChanged(getCurrentBoard(), Observer.Event.GAME_OVER);
-				}
+				event = Observer.Event.GAME_OVER;
 			} else {
-				for (Observer obs : observers){
-					obs.onModelChanged(getCurrentBoard(), Observer.Event.MOVE_MADE);
-				}
+				event = Observer.Event.MOVE_MADE;
+			}
+			for (Observer obs : observers){
+				obs.onModelChanged(getCurrentBoard(), event);
 			}
 		}
 	}

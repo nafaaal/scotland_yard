@@ -7,6 +7,7 @@ import java.util.*;
 import javax.annotation.Nonnull;
 import java.util.stream.Collectors;
 
+import org.checkerframework.checker.nullness.Opt;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
@@ -55,12 +56,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Detective det) {
-			for (Player detective : detectives) {
-				if (detective.equals(pieceToPlayer(det))) {
-					return Optional.of(detective.location());
-				}
-			}
-			return Optional.empty();
+			return  detectives.stream()
+					.filter(player -> player == pieceToPlayer(det))
+					.map(Player::location)
+					.findFirst();
 		}
 
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
@@ -134,7 +133,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private boolean detEmptyTickets(){
 			int count = 0;
-			//https://stackoverflow.com/questions/30089469/how-to-sum-values-in-a-map-with-a-stream
 			for (Player det : detectives){
 					count += det
 							.tickets()
@@ -188,11 +186,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private ImmutableSet<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 			Set<SingleMove> singleMoves = new HashSet<>();
-
-			Set<Integer> detLocations = new HashSet<>();	
-			for (Player det : detectives){
-				detLocations.add(det.location());
-			}
+			Set<Integer> detLocations = detectives.stream().map(Player::location).collect(Collectors.toSet());
 
 			for(int destination : setup.graph.adjacentNodes(source)) {
 				if (!(detLocations.contains(destination))){
@@ -232,25 +226,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private Player pieceToPlayer(Piece piece) {
-			Player result = null;
-			for (Player player : everyone) {
-				if (player.piece() == piece) {
-					result = player;
-				}
-			}
-			return result;
+			return everyone.stream()
+					.filter(player -> player.piece() == piece)
+					.findFirst()
+					.orElse(null);
 		}
 
 		private boolean hasTickets(Player detective){
-			boolean result = false;
-			Map<Ticket,Integer> tickets = new HashMap<>(detective.tickets());
-			for (int i : tickets.values()){
-				if (i > 0) {
-					result = true;
-					break;
-				}
-			}
-			return result;
+			return  detective.tickets().entrySet()
+					.stream()
+					.anyMatch(ticket -> ticket.getValue() > 0);
 		}
 
 		private void createRemaining(Move m){
@@ -259,12 +244,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			remains.remove(piece); // Removes player which has acted already
 			if (remains.size() == 0){ // Check if round is over
 				if (piece.isMrX()){ // Check if player was mrX (In the case of round 1)
-					for (Player det : detectives){ // Add all active detectives
-						if (hasTickets(det)) {
-							remains.add(det.piece());
-						}
-					}
-				} // If last acted player was detective and size == 0, add mrX and start new round
+					remains = detectives.stream()
+							.filter(this::hasTickets)
+							.map(Player::piece)
+							.collect(Collectors.toSet());
+				}
+				// If last acted player was detective and size == 0, add mrX and start new round
 				else remains.add(mrX.piece());
 			}
 			remaining = ImmutableSet.copyOf(remains);
@@ -331,12 +316,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private boolean isMrxCaught(){
-			for (Player det : detectives) {
-				if (det.location() == mrX.location()) {
-					return true;
-				}
-			}
-			return false;
+			return detectives.stream()
+					.anyMatch(det -> det.location() == mrX.location());
 		}
 
 		@Nonnull @Override public GameState advance(Move move) {
