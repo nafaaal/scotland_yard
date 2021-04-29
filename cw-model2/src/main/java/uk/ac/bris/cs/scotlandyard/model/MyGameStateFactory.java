@@ -114,7 +114,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (setup.graph.nodes().isEmpty()) throw new IllegalArgumentException();
 		}
 
-
 		private void findWinner(){
 			boolean gameRoundsReached = (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());
 //			mrX wins if all rounds end without detectives winning or detectives tickets run out
@@ -135,11 +134,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			int count = 0;
 			for (Player det : detectives){
 					count += det
-							.tickets()
-							.values()
-							.stream()
-							.mapToInt(x->x)
-							.sum();
+						.tickets()
+						.values()
+						.stream()
+						.mapToInt(x->x)
+						.sum();
 				}
 			return count == 0;
 		}
@@ -149,11 +148,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Piece> detectivePieces() {
-			List<Piece> dets = detectives
-					.stream()
+			return detectives.stream()
 					.map(Player::piece)
-					.collect(Collectors.toList());
-			return ImmutableSet.copyOf(dets);
+					.collect(ImmutableSet.toImmutableSet());
 		}
 
 		private void setMoves() {
@@ -233,24 +230,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private boolean hasTickets(Player detective){
-			return  detective.tickets().entrySet()
+			return detective.tickets().entrySet()
 					.stream()
 					.anyMatch(ticket -> ticket.getValue() > 0);
 		}
 
-		private void createRemaining(Move m){
+		private void updateRemaining(Move m){
 			Piece piece = m.commencedBy();
 			Set<Piece> remains = new HashSet<>(remaining);
 			remains.remove(piece); // Removes player which has acted already
 			if (remains.size() == 0){ // Check if round is over
-				if (piece.isMrX()){ // Check if player was mrX (In the case of round 1)
+				if (piece.isMrX()){ // Add all detectives when mrX plays
 					remains = detectives.stream()
 							.filter(this::hasTickets)
 							.map(Player::piece)
 							.collect(Collectors.toSet());
 				}
 				// If last acted player was detective and size == 0, add mrX and start new round
-				else remains.add(mrX.piece());
+				else {
+					remains.add(mrX.piece());
+				}
 			}
 			remaining = ImmutableSet.copyOf(remains);
 		}
@@ -316,13 +315,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private boolean isMrxCaught(){
-			return detectives.stream()
-					.anyMatch(det -> det.location() == mrX.location());
+			return detectives.stream().anyMatch(det -> det.location() == mrX.location());
 		}
 
 		@Nonnull @Override public GameState advance(Move move) {
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
-			createRemaining(move);
+			updateRemaining(move);
 			updateLog(move);
 			updateTickets(move);
 			return new MyGameState(setup, remaining, log, mrX, detectives);
