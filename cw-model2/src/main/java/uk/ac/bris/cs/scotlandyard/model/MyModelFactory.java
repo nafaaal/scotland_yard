@@ -12,12 +12,24 @@ import java.util.List;
 
 public final class MyModelFactory implements Factory<Model> {
 
-	public final class SomeModel implements Model{
+	public final class GameModel implements Model{
 
 		ImmutableSet<Observer> observers = ImmutableSet.of();
+		Board.GameState state;
+		GameSetup setup;
+		Player mrX;
+		ImmutableList<Player> detectives;
+
+		GameModel(GameSetup setup, Player mrX, ImmutableList<Player> detectives){
+			this.setup = setup;
+			this.mrX = mrX;
+			this.detectives = detectives;
+
+			state = new MyGameStateFactory().build(setup,mrX,detectives);
+		}
 
 		@Nonnull public Board getCurrentBoard() {
-			return null;
+			return state;
 		}
 
 		public void registerObserver(@Nonnull Observer observer) {
@@ -34,22 +46,29 @@ public final class MyModelFactory implements Factory<Model> {
 			List<Observer> copyObservers = new ArrayList<>(observers);
 			copyObservers.remove(observer);
 			observers = ImmutableSet.copyOf(copyObservers);
-
 		}
-
 
 		@Nonnull public ImmutableSet<Observer> getObservers() {
 			return observers;
 		}
 
 		public void chooseMove(@Nonnull Move move) {
-			System.out.println("do something");
+			state = state.advance(move);
+			if (!state.getWinner().isEmpty()){
+				for (Observer obs : observers){
+					obs.onModelChanged(getCurrentBoard(), Observer.Event.GAME_OVER);
+				}
+			} else {
+				for (Observer obs : observers){
+					obs.onModelChanged(getCurrentBoard(), Observer.Event.MOVE_MADE);
+				}
+			}
 		}
 	}
 
 	@Nonnull @Override public Model build(GameSetup setup,
 	                                      Player mrX,
 	                                      ImmutableList<Player> detectives) {
-		return new SomeModel();
+		return new GameModel(setup, mrX, detectives);
 	}
 }

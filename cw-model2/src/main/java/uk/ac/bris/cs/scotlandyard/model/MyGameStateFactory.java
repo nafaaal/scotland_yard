@@ -57,7 +57,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Detective det) {
 			for (Player detective : detectives) {
-				if (detective.equals(pieceToPlayer(det))) return Optional.of(detective.location());
+				if (detective.equals(pieceToPlayer(det))) {
+					return Optional.of(detective.location());
+				}
 			}
 			return Optional.empty();
 		}
@@ -69,7 +71,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			}
 			return Optional.empty();
-
 		}
 
 		@Nonnull @Override public ImmutableList<LogEntry> getMrXTravelLog() {
