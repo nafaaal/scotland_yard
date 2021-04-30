@@ -63,12 +63,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
-			for (Player player : everyone) {
-				if (player.equals(pieceToPlayer(piece))) {
-					return Optional.of(tic -> player.tickets().getOrDefault(tic, 0));
-				}
-			}
-			return Optional.empty();
+			Player player = everyone.stream()
+					.filter(d -> d.equals(pieceToPlayer(piece)))
+					.findFirst()
+					.orElse(null);
+			return (player == null) ?  Optional.empty() : Optional.of(tic -> player.tickets().getOrDefault(tic, 0));
 		}
 
 		@Nonnull @Override public ImmutableList<LogEntry> getMrXTravelLog() {
