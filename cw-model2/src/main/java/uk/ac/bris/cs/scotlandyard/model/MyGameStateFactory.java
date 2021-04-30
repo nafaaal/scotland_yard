@@ -7,6 +7,7 @@ import java.util.*;
 import javax.annotation.Nonnull;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Iterables;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
@@ -47,11 +48,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public ImmutableSet<Piece> getPlayers() {
-			List<Piece> players = everyone
-					.stream()
+			return everyone.stream()
 					.map(Player::piece)
-					.collect(Collectors.toList());
-			return ImmutableSet.copyOf(players);
+					.collect(ImmutableSet.toImmutableSet());
 		}
 
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Detective det) {
@@ -130,16 +129,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private boolean detEmptyTickets(){
-			int count = 0;
-			for (Player det : detectives){
-					count += det
-						.tickets()
-						.values()
-						.stream()
-						.mapToInt(x->x)
-						.sum();
-				}
-			return count == 0;
+			return detectives.stream().noneMatch(this::hasTickets);
 		}
 
 		private boolean isMrxStuck(){
