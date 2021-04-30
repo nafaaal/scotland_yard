@@ -7,7 +7,6 @@ import java.util.*;
 import javax.annotation.Nonnull;
 import java.util.stream.Collectors;
 
-import org.checkerframework.checker.nullness.Opt;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
@@ -56,10 +55,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Detective det) {
-			return  detectives.stream()
-					.filter(player -> player == pieceToPlayer(det))
-					.map(Player::location)
-					.findFirst();
+			for (Player detective : detectives) {
+				if (detective.equals(pieceToPlayer(det))) return Optional.of(detective.location());
+			}
+			return Optional.empty();
 		}
 
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
@@ -210,11 +209,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					secondMove = makeSingleMoves(setup,detectives,player,((SingleMove)first).destination);
 					for (Move second : secondMove){
 						doubleMoves.add(new DoubleMove( player.piece(),
-														first.source(),
-														((SingleMove)first).ticket,
-														((SingleMove)first).destination,
-														((SingleMove)second).ticket,
-														((SingleMove)second).destination));}
+										first.source(),
+										((SingleMove)first).ticket,
+										((SingleMove)first).destination,
+										((SingleMove)second).ticket,
+										((SingleMove)second).destination));}
 					player = player.give(first.tickets()); // change tickets back
 				}
 			}
