@@ -164,19 +164,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
 			if (nextToPlay == null) throw new IllegalArgumentException();
 			if (nextToPlay.isMrX()) {
-				mrXMoves = getAllMoves(setup, detectives, nextToPlay, nextToPlay.location());
+				mrXMoves.addAll(getAllMoves(setup, detectives, nextToPlay, nextToPlay.location()));
 			}
 			return ImmutableSet.copyOf(mrXMoves);
 		}
 
 		private ImmutableSet<Move> getDetMoves() {
 			Set<Move> detMoves = new HashSet<>();
-				for(Piece piece : remaining){
-					if (piece.isDetective()){
-						detMoves.addAll(getAllMoves(setup, detectives, pieceToPlayer(piece), pieceToPlayer(piece).location()));
-					}
-			}
-			return ImmutableSet.copyOf(detMoves);
+			 remaining.stream()
+					.filter(Piece::isDetective)
+					.map(this::pieceToPlayer)
+					.forEach(detective -> detMoves.addAll(getAllMoves(setup, detectives, detective, detective.location())));
+			return  ImmutableSet.copyOf(detMoves);
 		}
 
 
