@@ -55,10 +55,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Detective det) {
-			for (Player detective : detectives) {
-				if (detective.equals(pieceToPlayer(det))) return Optional.of(detective.location());
-			}
-			return Optional.empty();
+			Player player = detectives.stream()
+					.filter(d -> d.equals(pieceToPlayer(det)))
+					.findFirst()
+					.orElse(null);
+			return (player == null) ?  Optional.empty() : Optional.of(player.location());
 		}
 
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) {
