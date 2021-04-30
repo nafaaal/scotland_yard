@@ -160,13 +160,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Move> getmrXMoves() {
-			Set<Move> mrXMoves = new HashSet<>();
-			Player nextToPlay = pieceToPlayer(remaining.iterator().next());
-			if (nextToPlay == null) throw new IllegalArgumentException();
-			if (nextToPlay.isMrX()) {
-				mrXMoves.addAll(getAllMoves(setup, detectives, nextToPlay, nextToPlay.location()));
-			}
-			return ImmutableSet.copyOf(mrXMoves);
+			Player mrx = remaining.stream()
+					.findFirst()
+					.map(this::pieceToPlayer)
+					.orElseThrow(IllegalArgumentException::new);
+			return ImmutableSet.copyOf(getAllMoves(setup, detectives, mrx, mrx.location()));
 		}
 
 		private ImmutableSet<Move> getDetMoves() {
@@ -221,16 +219,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private Player pieceToPlayer(Piece piece) {
-			return everyone.stream()
-					.filter(player -> player.piece() == piece)
-					.findFirst()
-					.orElse(null);
+			return everyone.stream().filter(player -> player.piece() == piece).findFirst().orElse(null);
 		}
 
 		private boolean hasTickets(Player detective){
-			return detective.tickets().entrySet()
-					.stream()
-					.anyMatch(ticket -> ticket.getValue() > 0);
+			return detective.tickets().entrySet().stream().anyMatch(ticket -> ticket.getValue() > 0);
 		}
 
 		private void updateRemaining(Move m){
