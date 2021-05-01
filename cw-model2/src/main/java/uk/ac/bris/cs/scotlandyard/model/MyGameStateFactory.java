@@ -6,7 +6,6 @@ import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
-import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -25,7 +24,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
-
 
 		private MyGameState(final GameSetup setup, final ImmutableSet<Piece> remaining, final ImmutableList<LogEntry> log, final Player mrX, final ImmutableList<Player> detectives) {
 			this.setup = setup;
