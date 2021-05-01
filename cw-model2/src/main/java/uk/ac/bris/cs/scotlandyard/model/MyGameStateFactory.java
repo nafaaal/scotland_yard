@@ -2,22 +2,23 @@ package uk.ac.bris.cs.scotlandyard.model;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import java.util.*;
-import javax.annotation.Nonnull;
-import java.util.stream.Collectors;
-
-import com.google.common.collect.Iterables;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
-import uk.ac.bris.cs.scotlandyard.model.Move.*;
-import uk.ac.bris.cs.scotlandyard.model.Piece.*;
-import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
+import uk.ac.bris.cs.scotlandyard.model.Move.DoubleMove;
+import uk.ac.bris.cs.scotlandyard.model.Move.SingleMove;
+import uk.ac.bris.cs.scotlandyard.model.Piece.Detective;
+import uk.ac.bris.cs.scotlandyard.model.Piece.MrX;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Transport;
+
+import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public final class MyGameStateFactory implements Factory<GameState> {
 
 
-	private final class MyGameState implements GameState {
+	private static final class MyGameState implements GameState {
 
 		private final GameSetup setup;
 		private ImmutableSet<Piece> remaining;
@@ -133,7 +134,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private boolean isMrxStuck(){
-			return (getmrXMoves().size() == 0 && remaining.contains(mrX.piece()));
+			return (remaining.contains(mrX.piece()) && getmrXMoves().size() == 0);
 		}
 
 		private ImmutableSet<Piece> detectivePieces() {
@@ -209,58 +210,63 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private Player pieceToPlayer(Piece piece) {
-			return everyone.stream().filter(player -> player.piece() == piece).findFirst().orElse(null);
+			return everyone.stream()
+					.filter(player -> player.piece() == piece)
+					.findFirst()
+					.orElse(null);
 		}
 
 		private boolean hasTickets(Player detective){
-			return detective.tickets().entrySet().stream().anyMatch(ticket -> ticket.getValue() > 0);
+			return detective.tickets()
+					.entrySet()
+					.stream()
+					.anyMatch(ticket -> ticket.getValue() > 0);
 		}
 
+		//remaining will only contain either mrX or detectives who haven't played yet in the round.
 		private void updateRemaining(Move m){
-			Piece piece = m.commencedBy();
+			Piece lastActed = m.commencedBy();
 			Set<Piece> remains = new HashSet<>(remaining);
-			remains.remove(piece); // Removes player which has acted already
-			if (remains.size() == 0){ // Check if round is over
-				if (piece.isMrX()){ // Add all detectives when mrX plays
+			remains.remove(lastActed);
+			if (remains.size() == 0){
+				//remaining is populated accordingly based on who played last
+				if (lastActed.isMrX()){
 					remains = detectives.stream()
-							.filter(this::hasTickets)
-							.map(Player::piece)
-							.collect(Collectors.toSet());
+						.filter(this::hasTickets)
+						.map(Player::piece)
+						.collect(Collectors.toSet());
 				}
-				// If last acted player was detective and size == 0, add mrX and start new round
-				else {
+				if (lastActed.isDetective()){
 					remains.add(mrX.piece());
 				}
 			}
 			remaining = ImmutableSet.copyOf(remains);
 		}
 
-		private void updateTickets(Move m){
-			Player copyOfPlayer = pieceToPlayer(m.commencedBy());
-			if (copyOfPlayer.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
-				if (m instanceof SingleMove) {
-					mrX = mrX.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
+		private void updateTickets(Move move){
+			Piece playerActed = move.commencedBy();
+			if (playerActed.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
+				if (move instanceof SingleMove) {
+					mrX = mrX.use(((SingleMove) move).ticket).at(((SingleMove) move).destination);
 				}
-				if (m instanceof DoubleMove) {
-					mrX = mrX.use(Ticket.DOUBLE).at(m.source());
-					mrX = mrX.use(((DoubleMove) m).ticket1).at(((DoubleMove) m).destination1);
-					mrX = mrX.use(((DoubleMove) m).ticket2).at(((DoubleMove) m).destination2);
+				if (move instanceof DoubleMove) {
+					mrX = mrX.use(Ticket.DOUBLE).at(move.source());
+					mrX = mrX.use(((DoubleMove) move).ticket1).at(((DoubleMove) move).destination1);
+					mrX = mrX.use(((DoubleMove) move).ticket2).at(((DoubleMove) move).destination2);
 				}
-			} else { // Detectives can only make a singleMove.
+			}
+			if (playerActed.isDetective()) {// Detectives can only make a singleMove.
 				Set<Player> updatedDetectives = new HashSet<>();
-				for (Player copyOfDetective : detectives) {
-					// change location, tickets of detective who made the move, and keeping others the same
-					if (m.commencedBy() == copyOfDetective.piece()) {
-						Ticket ticket = ((SingleMove) m).ticket;
-						Player newDetective = copyOfDetective.use(((SingleMove) m).ticket).at(((SingleMove) m).destination);
-						updatedDetectives.add(newDetective);
-						// Give used ticket to mrX as part of rules
+				detectives.forEach(det -> {
+					Ticket ticket = ((SingleMove) move).ticket;
+					int destination = ((SingleMove) move).destination;
+
+					if ((det.piece() == playerActed)) {
+						updatedDetectives.add(det.use(ticket).at(destination));
 						mrX = mrX.give(ticket);
 					} else {
-						// if moves was not made by the detective, do not update tickets and location
-						updatedDetectives.add(copyOfDetective);
-					}
-				}
+						updatedDetectives.add(det);
+					}});
 				detectives = ImmutableList.copyOf(updatedDetectives);
 			}
 		}
