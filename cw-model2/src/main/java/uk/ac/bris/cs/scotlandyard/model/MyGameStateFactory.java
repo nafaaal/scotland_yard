@@ -3,13 +3,10 @@ package uk.ac.bris.cs.scotlandyard.model;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
-import uk.ac.bris.cs.scotlandyard.model.Move.DoubleMove;
-import uk.ac.bris.cs.scotlandyard.model.Move.SingleMove;
-import uk.ac.bris.cs.scotlandyard.model.Piece.Detective;
-import uk.ac.bris.cs.scotlandyard.model.Piece.MrX;
+import uk.ac.bris.cs.scotlandyard.model.Move.*;
+import uk.ac.bris.cs.scotlandyard.model.Piece.*;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
-import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
-import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Transport;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -161,12 +158,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableSet<Move> getDetMoves() {
 			Set<Move> detMoves = new HashSet<>();
 			 remaining.stream()
-					.filter(Piece::isDetective)
 					.map(this::pieceToPlayer)
 					.forEach(detective -> detMoves.addAll(getAllMoves(setup, detectives, detective, detective.location())));
 			return  ImmutableSet.copyOf(detMoves);
 		}
-
 
 		private ImmutableSet<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 			Set<SingleMove> singleMoves = new HashSet<>();
@@ -188,11 +183,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Move> getAllMoves(GameSetup setup, List<Player> detectives, Player player, int source){
-			Set<Move> firstMove = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
+			Set<Move> firstMoves = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
 			Set<Move> doubleMoves = new HashSet<>();
 			Set<SingleMove> secondMove;
 			if (player.has(Ticket.DOUBLE) && (setup.rounds.size()-1 != log.size())){ //Should be enough rounds to make a double move.
-				for (Move first : firstMove){
+				for (Move first : firstMoves){
 					player = player.use(first.tickets()); // update tickets so that correct double moves can be found
 					secondMove = makeSingleMoves(setup,detectives,player,((SingleMove)first).destination);
 					for (Move second : secondMove){
@@ -205,8 +200,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					player = player.give(first.tickets()); // change tickets back
 				}
 			}
-			firstMove.addAll(doubleMoves);
-			return ImmutableSet.copyOf(firstMove);
+			firstMoves.addAll(doubleMoves);
+			return ImmutableSet.copyOf(firstMoves);
 		}
 
 		private Player pieceToPlayer(Piece piece) {
@@ -257,16 +252,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 			if (playerActed.isDetective()) {// Detectives can only make a singleMove.
 				Set<Player> updatedDetectives = new HashSet<>();
-				detectives.forEach(det -> {
-					Ticket ticket = ((SingleMove) move).ticket;
-					int destination = ((SingleMove) move).destination;
-
+				for (Player det : detectives){
 					if ((det.piece() == playerActed)) {
-						updatedDetectives.add(det.use(ticket).at(destination));
-						mrX = mrX.give(ticket);
+						det = det.use(((SingleMove) move).ticket);
+						det = det.at(((SingleMove) move).destination);
+						updatedDetectives.add(det);
+						mrX = mrX.give(((SingleMove)move).ticket);
 					} else {
 						updatedDetectives.add(det);
-					}});
+					}
+				}
 				detectives = ImmutableList.copyOf(updatedDetectives);
 			}
 		}
