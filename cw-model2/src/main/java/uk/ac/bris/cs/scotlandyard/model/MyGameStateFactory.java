@@ -268,31 +268,30 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void updateLog(Move move){
+			Function<SingleMove, ArrayList<LogEntry>> smf = m -> {
+				if (setup.rounds.get(this.log.size())) {
+					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket, m.destination)));
+				} else {
+					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket)));
+				}};
+			Function<DoubleMove, ArrayList<LogEntry>> dmf = m -> {
+				if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size()+1)) {
+					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination1), LogEntry.reveal(m.ticket2, m.destination2)));
+				} else if (setup.rounds.get(this.log.size()+1)){
+					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.reveal(m.ticket2, m.destination2)));
+				} else if (setup.rounds.get(this.log.size())){
+					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination2), LogEntry.hidden(m.ticket2)));
+				} else {
+					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.hidden(m.ticket2)));
+				}
+			};
+
 			Player player = pieceToPlayer(move.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
+
 			if  (player.isMrX()) {
-				if (move instanceof SingleMove) {
-					if (setup.rounds.get(this.log.size())) {
-						tempLog.add(LogEntry.reveal(((SingleMove) move).ticket, ((SingleMove) move).destination));
-					} else {
-						tempLog.add(LogEntry.hidden(((SingleMove) move).ticket));
-					}
-				}
-				if (move instanceof DoubleMove) {
-					if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size()+1)) {
-						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket1, ((DoubleMove) move).destination1));
-						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket2, ((DoubleMove) move).destination2));
-					} else if (setup.rounds.get(this.log.size()+1)){
-						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket1));
-						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket2, ((DoubleMove) move).destination2));
-					} else if (setup.rounds.get(this.log.size())){
-						tempLog.add(LogEntry.reveal(((DoubleMove) move).ticket1, ((DoubleMove) move).destination1));
-						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket2));
-					} else {
-						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket1));
-						tempLog.add(LogEntry.hidden(((DoubleMove) move).ticket2));
-					}
-				}
+				Visitor<ArrayList<LogEntry>> visitor = new FunctionalVisitor<>(smf,dmf);
+				tempLog.addAll(move.visit(visitor));
 			}
 			log = ImmutableList.copyOf(tempLog);
 		}
