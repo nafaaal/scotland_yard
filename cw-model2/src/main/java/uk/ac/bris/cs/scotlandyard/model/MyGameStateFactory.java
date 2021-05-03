@@ -194,25 +194,20 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Move> getAllMoves(GameSetup setup, List<Player> detectives, Player player, int source){
-			Set<Move> firstMoves = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
-			Set<Move> doubleMoves = new HashSet<>();
-			Set<SingleMove> secondMove;
+			Set<SingleMove> firstMoves = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
+			Set<DoubleMove> secondMoves = new HashSet<>();
 			if (player.has(Ticket.DOUBLE) && (setup.rounds.size()-1 != log.size())){ //Should be enough rounds to make a double move.
-				for (Move first : firstMoves){
+				for (SingleMove first : firstMoves){
 					player = player.use(first.tickets()); // update tickets so that correct double moves can be found
-					secondMove = makeSingleMoves(setup,detectives,player,((SingleMove)first).destination);
-					for (Move second : secondMove){
-						doubleMoves.add(new DoubleMove( player.piece(),
-										first.source(),
-										((SingleMove)first).ticket,
-										((SingleMove)first).destination,
-										((SingleMove)second).ticket,
-										((SingleMove)second).destination));}
+					for (SingleMove second : makeSingleMoves(setup, detectives, player, first.destination)){
+						secondMoves.add(new DoubleMove(player.piece(), first.source(), first.ticket, first.destination, second.ticket, second.destination));}
 					player = player.give(first.tickets()); // change tickets back
 				}
 			}
-			firstMoves.addAll(doubleMoves);
-			return ImmutableSet.copyOf(firstMoves);
+			Set<Move> allMoves = new HashSet<>();
+			allMoves.addAll(firstMoves);
+			allMoves.addAll(secondMoves); // empty if player is a detective
+			return ImmutableSet.copyOf(allMoves);
 		}
 
 		private Player pieceToPlayer(Piece piece) {
@@ -222,7 +217,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					.orElse(null);
 		}
 
-		//remaining will only contain either mrX or detectives who haven't played yet in the round.
 		private void updateRemaining(Move move){
 			Piece lastActed = move.commencedBy();
 			Set<Piece> remains = new HashSet<>(remaining);
@@ -283,8 +277,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination2), LogEntry.hidden(m.ticket2)));
 				} else {
 					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.hidden(m.ticket2)));
-				}
-			};
+				}};
 
 			Player player = pieceToPlayer(move.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
