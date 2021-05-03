@@ -9,6 +9,7 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class MyGameStateFactory implements Factory<GameState> {
@@ -109,20 +110,28 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void findWinner(){
-			boolean gameRoundsReached = (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());
-//			mrX wins if all rounds end without detectives winning or detectives tickets run out
-			if(gameRoundsReached || detEmptyTickets()) {
+			//mrX wins if all rounds end without detectives winning or detectives tickets run out
+			if(gameRoundsReached() || detEmptyTickets()) {
 				winner = ImmutableSet.of(mrX.piece());
 				moves = ImmutableSet.of();
-//			detectives mrX is stuck or caught
+			//detectives mrX is stuck or caught
 			} else if (isMrxCaught() || isMrxStuck()) {
 				winner = ImmutableSet.copyOf(detectivePieces());
 				moves = ImmutableSet.of();
-//			otherwise game is not over -> no winner yet
+			//otherwise game is not over -> no winner yet
 			} else {
 				winner = ImmutableSet.of();
 			}
 		}
+
+		private boolean hasTickets(Player detective){
+			return detective.tickets()
+					.entrySet()
+					.stream()
+					.anyMatch(ticket -> ticket.getValue() > 0);
+		}
+
+		private boolean gameRoundsReached() {return (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());}
 
 		private boolean detEmptyTickets(){
 			return detectives.stream().noneMatch(this::hasTickets);
@@ -130,6 +139,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private boolean isMrxStuck(){
 			return (remaining.contains(mrX.piece()) && getmrXMoves().size() == 0);
+		}
+
+		private boolean isMrxCaught(){
+			return detectives.stream().anyMatch(det -> det.location() == mrX.location());
 		}
 
 		private ImmutableSet<Piece> detectivePieces() {
@@ -209,16 +222,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					.orElse(null);
 		}
 
-		private boolean hasTickets(Player detective){
-			return detective.tickets()
-					.entrySet()
-					.stream()
-					.anyMatch(ticket -> ticket.getValue() > 0);
-		}
-
 		//remaining will only contain either mrX or detectives who haven't played yet in the round.
-		private void updateRemaining(Move m){
-			Piece lastActed = m.commencedBy();
+		private void updateRemaining(Move move){
+			Piece lastActed = move.commencedBy();
 			Set<Piece> remains = new HashSet<>(remaining);
 			remains.remove(lastActed);
 			if (remains.size() == 0){
@@ -237,30 +243,27 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void updateTickets(Move move){
-			Piece playerActed = move.commencedBy();
-			if (playerActed.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
-				if (move instanceof SingleMove) {
-					mrX = mrX.use(((SingleMove) move).ticket).at(((SingleMove) move).destination);
-				}
-				if (move instanceof DoubleMove) {
-					mrX = mrX.use(Ticket.DOUBLE).at(move.source());
-					mrX = mrX.use(((DoubleMove) move).ticket1).at(((DoubleMove) move).destination1);
-					mrX = mrX.use(((DoubleMove) move).ticket2).at(((DoubleMove) move).destination2);
-				}
+			Player player = pieceToPlayer(move.commencedBy());
+
+			Function<SingleMove, Player> smf = m -> player.use((m).ticket).at((m).destination);
+			Function<DoubleMove, Player> dmf = m -> {
+				mrX = mrX.use(Ticket.DOUBLE).at(m.source());
+				mrX = mrX.use((m).ticket1).at((m).destination1).use((m).ticket2).at((m).destination2);
+				return mrX;
+			};
+
+			Visitor<Player> visitor = new FunctionalVisitor<>(smf, dmf);
+
+			if (player.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
+				mrX = move.visit(visitor);
 			}
-			if (playerActed.isDetective()) {// Detectives can only make a singleMove.
-				Set<Player> updatedDetectives = new HashSet<>();
-				for (Player det : detectives){
-					if ((det.piece() == playerActed)) {
-						det = det.use(((SingleMove) move).ticket);
-						det = det.at(((SingleMove) move).destination);
-						updatedDetectives.add(det);
-						mrX = mrX.give(((SingleMove)move).ticket);
-					} else {
-						updatedDetectives.add(det);
-					}
-				}
-				detectives = ImmutableList.copyOf(updatedDetectives);
+
+			if (player.isDetective()) {// Detectives can only make a singleMove.
+				Set<Player> updatedDet = new HashSet<>(detectives);
+				updatedDet.remove(player);
+				updatedDet.add(move.visit(visitor));
+				mrX = mrX.give(move.tickets());
+				detectives = ImmutableList.copyOf(updatedDet);
 			}
 		}
 
@@ -292,10 +295,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			}
 			log = ImmutableList.copyOf(tempLog);
-		}
-
-		private boolean isMrxCaught(){
-			return detectives.stream().anyMatch(det -> det.location() == mrX.location());
 		}
 
 		@Nonnull @Override public GameState advance(Move move) {
