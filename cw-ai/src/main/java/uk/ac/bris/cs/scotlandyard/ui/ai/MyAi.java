@@ -17,20 +17,20 @@ import uk.ac.bris.cs.scotlandyard.model.*;
 public class MyAi implements Ai {
 
 	private static final class MyGameState implements Board.GameState {
-		private final GameSetup setup;
-		private ImmutableSet<Piece> remaining;
-		private ImmutableList<LogEntry> log;
-		private Player mrX;
-		private ImmutableList<Player> detectives;
-		private ImmutableList<Player> everyone;
-		private ImmutableSet<Move> moves;
-		private ImmutableSet<Piece> winner;
+		private static GameSetup setup = null;
+		private static ImmutableSet<Piece> remaining;
+		private static ImmutableList<LogEntry> log;
+		private static Player mrX;
+		private static ImmutableList<Player> detectives;
+		private static ImmutableList<Player> everyone;
+		private static ImmutableSet<Move> moves;
+		private static ImmutableSet<Piece> winner;
 		private MyGameState(final GameSetup setup, final ImmutableSet<Piece> remaining, final ImmutableList<LogEntry> log, final Player mrX, final ImmutableList<Player> detectives) {
-			this.setup = setup;
-			this.remaining = remaining;
-			this.log = log;
-			this.mrX = mrX;
-			this.detectives = detectives;
+			MyGameState.setup = setup;
+			MyGameState.remaining = remaining;
+			MyGameState.log = log;
+			MyGameState.mrX = mrX;
+			MyGameState.detectives = detectives;
 			Set<Player> temp = new HashSet<>(detectives);
 			temp.add(mrX);
 			everyone = ImmutableList.copyOf(temp);
@@ -39,10 +39,10 @@ public class MyAi implements Ai {
 		@Nonnull @Override public ImmutableSet<Piece> getPlayers() { return everyone.stream().map(Player::piece).collect(ImmutableSet.toImmutableSet()); }
 		@Nonnull @Override public Optional<Integer> getDetectiveLocation(Piece.Detective detective) { return Optional.empty();}
 		@Nonnull @Override public Optional<TicketBoard> getPlayerTickets(Piece piece) { return Optional.empty(); }
-		@Nonnull @Override public ImmutableList<LogEntry> getMrXTravelLog() { return null; }
+		@Nonnull @Override public ImmutableList<LogEntry> getMrXTravelLog() { return log; }
 		@Nonnull @Override public ImmutableSet<Piece> getWinner() { return winner; }
 		@Nonnull @Override public ImmutableSet<Move> getAvailableMoves() { return moves; }
-		private void updateRemaining(Move move) {
+		private static void updateRemaining(Move move) {
 			Piece lastActed = move.commencedBy();
 			Set<Piece> remains = new HashSet<>(remaining);
 			remains.remove(lastActed);
@@ -50,7 +50,7 @@ public class MyAi implements Ai {
 				//remaining is populated accordingly based on who played last
 				if (lastActed.isMrX()) {
 					remains = detectives.stream()
-							.filter(this::hasTickets)
+							.filter(MyGameState::hasTickets)
 							.map(Player::piece)
 							.collect(Collectors.toSet());
 				}
@@ -60,13 +60,13 @@ public class MyAi implements Ai {
 			}
 			remaining = ImmutableSet.copyOf(remains);
 		}
-		private boolean hasTickets(Player player) {
+		private static boolean hasTickets(Player player) {
 			return player.tickets()
 					.entrySet()
 					.stream()
 					.anyMatch(ticket -> ticket.getValue() > 0);
 		}
-		private void updateTickets(Move move) {
+		private static void updateTickets(Move move) {
 			Player player = pieceToPlayer(move.commencedBy());
 
 			Function<Move.SingleMove, Player> smf = m -> player.use((m).ticket).at((m).destination);
@@ -90,7 +90,7 @@ public class MyAi implements Ai {
 				detectives = ImmutableList.copyOf(updatedDet);
 			}
 		}
-		private Player pieceToPlayer(Piece piece) {
+		private static Player pieceToPlayer(Piece piece) {
 			return everyone.stream()
 					.filter(player -> player.piece() == piece)
 					.findFirst()
@@ -98,18 +98,18 @@ public class MyAi implements Ai {
 		}
 		private void updateLog(Move move) {
 			Function<Move.SingleMove, ArrayList<LogEntry>> smf = m -> {
-				if (setup.rounds.get(this.log.size())) {
+				if (setup.rounds.get(log.size())) {
 					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket, m.destination)));
 				} else {
 					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket)));
 				}
 			};
 			Function<Move.DoubleMove, ArrayList<LogEntry>> dmf = m -> {
-				if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size() + 1)) {
+				if (setup.rounds.get(log.size()) && setup.rounds.get(log.size() + 1)) {
 					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination1), LogEntry.reveal(m.ticket2, m.destination2)));
-				} else if (setup.rounds.get(this.log.size() + 1)) {
+				} else if (setup.rounds.get(log.size() + 1)) {
 					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.reveal(m.ticket2, m.destination2)));
-				} else if (setup.rounds.get(this.log.size())) {
+				} else if (setup.rounds.get(log.size())) {
 					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination2), LogEntry.hidden(m.ticket2)));
 				} else {
 					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.hidden(m.ticket2)));
