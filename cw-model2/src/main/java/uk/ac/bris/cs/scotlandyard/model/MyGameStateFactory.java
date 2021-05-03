@@ -131,7 +131,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					.anyMatch(ticket -> ticket.getValue() > 0);
 		}
 
-		private boolean gameRoundsReached() {return (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());}
+		private boolean gameRoundsReached(){
+			return (log.size() == setup.rounds.size()) && this.remaining.contains(mrX.piece());
+		}
 
 		private boolean detEmptyTickets(){
 			return detectives.stream().noneMatch(this::hasTickets);
@@ -239,10 +241,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private void updateTickets(Move move){
 			Player player = pieceToPlayer(move.commencedBy());
 
-			Function<SingleMove, Player> smf = m -> player.use((m).ticket).at((m).destination);
-			Function<DoubleMove, Player> dmf = m -> {
-				mrX = mrX.use(Ticket.DOUBLE).at(m.source());
-				mrX = mrX.use((m).ticket1).at((m).destination1).use((m).ticket2).at((m).destination2);
+			Function<SingleMove, Player> smf = sm -> player.use(sm.ticket).at(sm.destination);
+			Function<DoubleMove, Player> dmf = dm -> {
+				mrX = mrX.use(Ticket.DOUBLE).at(dm.source());
+				mrX = mrX.use(dm.ticket1).at(dm.destination1).use(dm.ticket2).at(dm.destination2);
 				return mrX;
 			};
 
@@ -262,21 +264,21 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private void updateLog(Move move){
-			Function<SingleMove, ArrayList<LogEntry>> smf = m -> {
+			Function<SingleMove, ArrayList<LogEntry>> smf = sm -> {
 				if (setup.rounds.get(this.log.size())) {
-					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket, m.destination)));
+					return new ArrayList<>(List.of(LogEntry.reveal(sm.ticket, sm.destination)));
 				} else {
-					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket)));
+					return new ArrayList<>(List.of(LogEntry.hidden(sm.ticket)));
 				}};
-			Function<DoubleMove, ArrayList<LogEntry>> dmf = m -> {
+			Function<DoubleMove, ArrayList<LogEntry>> dmf = dm -> {
 				if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size()+1)) {
-					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination1), LogEntry.reveal(m.ticket2, m.destination2)));
+					return new ArrayList<>(List.of(LogEntry.reveal(dm.ticket1, dm.destination1), LogEntry.reveal(dm.ticket2, dm.destination2)));
 				} else if (setup.rounds.get(this.log.size()+1)){
-					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.reveal(m.ticket2, m.destination2)));
+					return new ArrayList<>(List.of(LogEntry.hidden(dm.ticket1), LogEntry.reveal(dm.ticket2, dm.destination2)));
 				} else if (setup.rounds.get(this.log.size())){
-					return new ArrayList<>(List.of(LogEntry.reveal(m.ticket1, m.destination2), LogEntry.hidden(m.ticket2)));
+					return new ArrayList<>(List.of(LogEntry.reveal(dm.ticket1, dm.destination2), LogEntry.hidden(dm.ticket2)));
 				} else {
-					return new ArrayList<>(List.of(LogEntry.hidden(m.ticket1), LogEntry.hidden(m.ticket2)));
+					return new ArrayList<>(List.of(LogEntry.hidden(dm.ticket1), LogEntry.hidden(dm.ticket2)));
 				}};
 
 			Player player = pieceToPlayer(move.commencedBy());
