@@ -22,7 +22,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableList<LogEntry> log;
 		private Player mrX;
 		private ImmutableList<Player> detectives;
-		private ImmutableList<Player> everyone;
+		private final ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
 
@@ -32,12 +32,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
-
-			setEveryone();
+			this.everyone = setEveryone();
 			setMoves();
 			findWinner();
 			validate();
-
 		}
 
 		@Nonnull @Override public GameSetup getSetup() {
@@ -78,11 +76,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return moves;
 		}
 
-		private void setEveryone(){
+		private ImmutableList<Player> setEveryone(){
 			List<Player> allPlayers = new ArrayList<>();
 			allPlayers.add(mrX);
 			allPlayers.addAll(detectives);
-			everyone = ImmutableList.copyOf(allPlayers);
+			return ImmutableList.copyOf(allPlayers);
 		}
 
 		private void validate(){
@@ -265,17 +263,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private void updateLog(Move move){
 			Function<SingleMove, ArrayList<LogEntry>> smf = sm -> {
-				if (setup.rounds.get(this.log.size())) {
+				if (setup.rounds.get(log.size())) {
 					return new ArrayList<>(List.of(LogEntry.reveal(sm.ticket, sm.destination)));
 				} else {
 					return new ArrayList<>(List.of(LogEntry.hidden(sm.ticket)));
 				}};
 			Function<DoubleMove, ArrayList<LogEntry>> dmf = dm -> {
-				if (setup.rounds.get(this.log.size()) && setup.rounds.get(this.log.size()+1)) {
-					return new ArrayList<>(List.of(LogEntry.reveal(dm.ticket1, dm.destination1), LogEntry.reveal(dm.ticket2, dm.destination2)));
-				} else if (setup.rounds.get(this.log.size()+1)){
+				if (setup.rounds.get(log.size()) && setup.rounds.get(log.size()+1)) {
+					return new ArrayList<>(List.of(LogEntry.reveal(dm.ticket1, dm.destination1),LogEntry.reveal(dm.ticket2, dm.destination2)));
+				} else if (setup.rounds.get(log.size()+1)){
 					return new ArrayList<>(List.of(LogEntry.hidden(dm.ticket1), LogEntry.reveal(dm.ticket2, dm.destination2)));
-				} else if (setup.rounds.get(this.log.size())){
+				} else if (setup.rounds.get(log.size())){
 					return new ArrayList<>(List.of(LogEntry.reveal(dm.ticket1, dm.destination2), LogEntry.hidden(dm.ticket2)));
 				} else {
 					return new ArrayList<>(List.of(LogEntry.hidden(dm.ticket1), LogEntry.hidden(dm.ticket2)));
