@@ -178,13 +178,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Set<SingleMove> singleMoves = new HashSet<>();
 			Set<Integer> detLocations = detectives.stream().map(Player::location).collect(Collectors.toSet());
 
+			//Loops through each neighbouring node
 			for(int destination : setup.graph.adjacentNodes(source)) {
+				//Continue only if the node is not occupied
 				if (!(detLocations.contains(destination))){
+					//Loop through each edge and add the move if the player has the needed ticket
 					for(Transport t : Objects.requireNonNull(setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()))) {
 						if (player.has(t.requiredTicket())) {
 							singleMoves.add(new SingleMove(player.piece(), source, t.requiredTicket(), destination));
 						}
 					}
+					// Secret ticket can move anywhere, therefore check for requiredTicket is not needed.
 					if (player.has(Ticket.SECRET)) {
 						singleMoves.add(new SingleMove(player.piece(), source, Ticket.SECRET, destination));
 					}
@@ -194,19 +198,24 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private ImmutableSet<Move> getAllMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+			//Get all singlemoves.
 			Set<SingleMove> firstMoves = new HashSet<>(makeSingleMoves(setup, detectives, player, source));
 			Set<DoubleMove> secondMoves = new HashSet<>();
-			if (player.has(Ticket.DOUBLE) && (setup.rounds.size()-1 != log.size())){ //Should be enough rounds to make a double move.
+			//Doublemove can be made if he has a Double ticket and if there are enough rounds.
+			if (player.has(Ticket.DOUBLE) && (setup.rounds.size()-1 != log.size())){
+				//Loop through each singlemove, and get the next move that can be made
 				for (SingleMove first : firstMoves){
-					player = player.use(first.tickets()); // update tickets so that correct double moves can be found
+					// update tickets so that correct double moves can be found
+					player = player.use(first.tickets());
 					for (SingleMove second : makeSingleMoves(setup, detectives, player, first.destination)){
 						secondMoves.add(new DoubleMove(player.piece(), first.source(), first.ticket, first.destination, second.ticket, second.destination));}
-					player = player.give(first.tickets()); // change tickets back
+					// change tickets back
+					player = player.give(first.tickets());
 				}
 			}
 			Set<Move> allMoves = new HashSet<>();
 			allMoves.addAll(firstMoves);
-			allMoves.addAll(secondMoves); // empty if player is a detective
+			allMoves.addAll(secondMoves); // note : empty if player is a detective
 			return ImmutableSet.copyOf(allMoves);
 		}
 
@@ -248,11 +257,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			Visitor<Player> visitor = new FunctionalVisitor<>(smf, dmf);
 
-			if (player.isMrX()){ // Have to check if mrX makes double move, and update accordingly.
+			// The visit method of the object in memory will be the visit method of the visitor that is passed in.
+			// That visit method is passed a reference of the move which called it.
+
+			// Since the functional visitor is overloaded with a visit method Singlemove and DoubleMove, the
+			// correct visit method will be called, which applies either the smf or dmf function which
+			// we pass in as arguments to the FunctionalVisitor.
+
+			if (player.isMrX()){
 				mrX = move.visit(visitor);
 			}
 
-			if (player.isDetective()) {// Detectives can only make a singleMove.
+			if (player.isDetective()) {
 				Set<Player> updatedDet = new HashSet<>(detectives);
 				updatedDet.remove(player);
 				updatedDet.add(move.visit(visitor));
@@ -282,6 +298,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Player player = pieceToPlayer(move.commencedBy());
 			List<LogEntry> tempLog = new ArrayList<>(List.copyOf(log));
 
+			// The visit method of the object in memory will be the visit method of the visitor that is passed in.
+			// That visit method is passed a reference of the move which called it.
+
+			// Since the functional visitor is overloaded with a visit method Singlemove and DoubleMove, the
+			// correct visit method will be called, which applies either the smf or dmf function which
+			// we pass in as arguments to the FunctionalVisitor.
+
 			if  (player.isMrX()) {
 				Visitor<ArrayList<LogEntry>> visitor = new FunctionalVisitor<>(smf,dmf);
 				tempLog.addAll(move.visit(visitor));
@@ -291,6 +314,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Nonnull @Override public GameState advance(Move move) {
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
+			// When a move is made, remaining, log and tickets are updated, and a new MyGameState is returned.
 			updateRemaining(move);
 			updateLog(move);
 			updateTickets(move);
